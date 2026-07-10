@@ -1,0 +1,2335 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Band Composer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&family=Noto+Sans+KR:wght@300;400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#0E0D0C;--panel:#1A1714;--card:#221D17;--card2:#2A231B;--line:#352C22;--text:#F1E9DC;--muted:#988D80;
+    --amber:#E8A33D;--amber-dim:#9C7536;--teal:#4FB0A8;--e1:#4C7FB0;--e2:#5E9E8E;--e3:#C8A24A;--e4:#DD8638;--e5:#E0573A;--r:3px;}
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{margin:0;background:radial-gradient(120% 70% at 50% -5%,#1d1813 0%,var(--bg) 55%) fixed,var(--bg);
+    color:var(--text);font-family:"Noto Sans KR",system-ui,sans-serif;font-weight:300;line-height:1.5;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1140px;margin:0 auto;height:100vh;height:100dvh;display:flex;flex-direction:column;}
+  .scroll{flex:1 1 auto;min-height:0;overflow-y:auto;padding:42px 20px 24px;}
+  header{margin-bottom:26px;}
+  .guidebtn{font-family:"Archivo","Noto Sans KR",sans-serif;font-size:12.5px;font-weight:700;vertical-align:middle;
+    margin-left:12px;padding:6px 13px;border:1px solid var(--amber-dim);border-radius:20px;background:var(--card);
+    color:var(--amber);cursor:pointer;letter-spacing:.02em;transition:all .14s;}
+  .guidebtn:hover{background:var(--amber);color:#140e06;border-color:var(--amber);}
+  .goverlay{position:fixed;inset:0;z-index:100;background:rgba(8,7,6,.78);backdrop-filter:blur(3px);
+    display:flex;justify-content:center;align-items:flex-start;overflow-y:auto;padding:24px 14px;}
+  .goverlay[hidden]{display:none;}
+  .gsheet{background:var(--bg);border:1px solid var(--line);border-radius:12px;max-width:760px;width:100%;
+    box-shadow:0 24px 70px rgba(0,0,0,.6);margin:auto;}
+  .ghead{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:12px;
+    background:linear-gradient(var(--panel),var(--panel) 70%,transparent);padding:18px 22px 16px;border-bottom:1px solid var(--line);border-radius:12px 12px 0 0;}
+  .gkick{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.26em;color:var(--e5);text-transform:uppercase;}
+  .gtitle{font-family:"Archivo","Noto Serif KR",serif;font-weight:900;font-size:23px;margin-top:4px;letter-spacing:-.01em;}
+  .gclose{margin-left:auto;flex:0 0 auto;width:38px;height:38px;border-radius:50%;border:1px solid var(--line);
+    background:var(--card);color:var(--text);font-size:16px;cursor:pointer;}
+  .gclose:hover{background:var(--card2);border-color:var(--amber-dim);}
+  .gbody{padding:6px 22px 34px;}
+  .gintro{color:var(--muted);font-size:13.5px;line-height:1.6;margin:14px 0 4px;}
+  .glegend{border:1px solid var(--line);border-radius:8px;overflow:hidden;margin:14px 0;background:var(--card);}
+  .glegend .r{display:grid;grid-template-columns:128px 1fr;gap:10px;padding:9px 13px;border-bottom:1px solid var(--line);font-size:12.5px;}
+  .glegend .r:last-child{border-bottom:0;}
+  .glegend .k{font-family:"JetBrains Mono",monospace;font-weight:700;color:var(--text);font-size:11.5px;align-self:center;}
+  .glegend .v{color:var(--muted);}
+  .gfam{font-family:"JetBrains Mono",monospace;font-size:11.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--e5);margin:26px 0 8px;padding-top:14px;border-top:1px solid var(--line);}
+  .gcard{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--amber-dim);border-radius:7px;padding:13px 15px;margin:10px 0;scroll-margin-top:84px;}
+  .gcard.now{border-left-color:var(--amber);border-color:var(--amber-dim);box-shadow:0 0 0 1px var(--amber-dim) inset;}
+  .gcard .gt{display:flex;flex-wrap:wrap;align-items:baseline;gap:9px;}
+  .gcard .gn{font-family:"Noto Serif KR",serif;font-weight:700;font-size:17px;color:var(--text);}
+  .gcard .ge{font-family:"JetBrains Mono",monospace;font-size:11.5px;color:var(--muted);}
+  .gcard .gm{margin-left:auto;font-family:"JetBrains Mono",monospace;font-size:11.5px;color:var(--muted);border:1px solid var(--line);border-radius:12px;padding:1px 9px;}
+  .gcard .gm b{color:var(--e5);}
+  .gcard .gnow{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.1em;color:#140e06;background:var(--amber);border-radius:10px;padding:1px 8px;}
+  .gcombo{margin:9px 0 3px;}
+  .gchip{display:inline-block;font-family:"JetBrains Mono",monospace;font-size:11px;font-weight:700;padding:3px 9px;border-radius:16px;border:1px solid var(--amber-dim);color:var(--amber);background:rgba(232,163,61,.08);margin:3px 4px 3px 0;white-space:nowrap;}
+  .gchip.core{border-color:var(--e5);color:var(--e5);background:rgba(224,87,58,.1);}
+  .gchip.med{border-color:var(--teal);color:var(--teal);background:rgba(79,176,168,.1);}
+  .gfeel{font-size:13.3px;color:var(--text);line-height:1.6;margin:6px 0 0;}
+  .gtip{font-size:12px;color:var(--muted);margin-top:7px;padding-top:7px;border-top:1px dashed var(--line);}
+  .gtip b,.gfeel b{color:var(--amber);}
+  .gapply{margin-top:11px;width:100%;padding:9px;border:1px solid var(--amber-dim);border-radius:6px;
+    background:rgba(232,163,61,.1);color:var(--amber);font-family:"Archivo","Noto Sans KR",sans-serif;
+    font-weight:700;font-size:13px;cursor:pointer;transition:all .14s;letter-spacing:.02em;}
+  .gapply:hover{background:var(--amber);color:#140e06;border-color:var(--amber);}
+  .gcard.now .gapply{border-color:var(--amber);}
+  .grechead{display:flex;align-items:center;gap:12px;margin:18px 0 4px;padding-bottom:9px;border-bottom:1px solid var(--line);}
+  .grh{font-family:"Noto Serif KR",serif;font-weight:700;font-size:16px;color:var(--text);}
+  .gtempo{font-family:"JetBrains Mono",monospace;font-size:11.5px;color:var(--muted);font-weight:500;}
+  .grefresh{margin-left:auto;flex:0 0 auto;font-family:"Archivo","Noto Sans KR",sans-serif;font-weight:700;font-size:12.5px;
+    padding:7px 13px;border:1px solid var(--amber-dim);border-radius:20px;background:var(--card);color:var(--amber);cursor:pointer;transition:all .14s;white-space:nowrap;}
+  .grefresh:hover{background:var(--amber);color:#140e06;border-color:var(--amber);}
+  .grecs{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0 4px;}
+  .grecs .gcard{margin:0;display:flex;flex-direction:column;}
+  .grecs .gcard .gfeel{flex:1;}
+  @media (max-width:520px){.grecs{grid-template-columns:1fr;}}
+  .gmoods{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:6px 0 4px;}
+  .gmood{background:var(--card);border:1px solid var(--line);border-top:2px solid var(--amber-dim);border-radius:7px;padding:12px 13px;display:flex;flex-direction:column;}
+  .gmn{font-family:"Noto Serif KR",serif;font-weight:700;font-size:15px;color:var(--text);margin-bottom:5px;}
+  .gmf{font-size:12.4px;color:var(--muted);line-height:1.55;flex:1;}
+  .gmood .gcombo{margin:8px 0 9px;}
+  .gmood .gapply{margin-top:auto;padding:7px;font-size:12px;}
+  @media (max-width:520px){.gmoods{grid-template-columns:1fr;}}
+  .gnote{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px;margin:16px 0;font-size:12.8px;color:var(--muted);line-height:1.65;}
+  .gnote .h{font-family:"Noto Serif KR",serif;font-weight:700;color:var(--text);font-size:14px;display:block;margin-bottom:5px;}
+  .gnote b{color:var(--text);}
+  .gfoot{margin-top:22px;border-top:1px solid var(--line);padding-top:12px;font-family:"JetBrains Mono",monospace;font-size:10.5px;color:var(--muted);line-height:1.7;}
+  @media (max-width:520px){.glegend .r{grid-template-columns:1fr;gap:2px;}.gcard .gm{margin-left:0;}.gbody{padding:6px 15px 30px;}.ghead{padding:16px 16px 14px;}}
+  .kicker{font-family:"Archivo",sans-serif;font-weight:700;letter-spacing:.22em;font-size:12px;color:var(--amber);text-transform:uppercase;margin:0 0 9px;}
+  h1{font-family:"Archivo","Noto Sans KR",sans-serif;font-weight:900;font-size:34px;line-height:1.05;margin:0 0 9px;letter-spacing:-.02em;}
+  .sub{color:var(--muted);font-size:14.5px;max-width:66ch;margin:0;}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px 20px;margin-bottom:16px;}
+  .plabel{font-family:"Archivo",sans-serif;font-weight:700;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--amber);margin:0 0 15px;display:flex;align-items:center;gap:10px;}
+  .plabel .n{font-family:"JetBrains Mono",monospace;color:var(--muted);font-weight:400;}
+  .ptoggle{cursor:pointer;user-select:none;}
+  .chev{margin-left:auto;color:var(--muted);font-size:11px;transition:transform .15s;}
+  .panel.collapsed .chev{transform:rotate(-90deg);}
+  .panel.collapsed .plabel{margin-bottom:0;}
+  .panel.collapsed .pbody{display:none;}
+  .seg.sel{outline:2px solid var(--amber);outline-offset:-2px;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:13px 16px;}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}   /* 곡 조·박자표·템포 한 줄 (폰에서도 3칸 유지) */
+  .grid3 .field label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .grid3 input[type=number]{width:100%;}
+  .field{display:flex;flex-direction:column;gap:5px;}
+  .field label{font-size:11px;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;}
+  select,input[type=text],input[type=number]{background:var(--bg);border:1px solid var(--line);color:var(--text);
+    border-radius:var(--r);padding:8px 9px;font-size:13.5px;font-family:inherit;width:100%;transition:border-color .15s;}
+  select:focus,input:focus{outline:none;border-color:var(--amber);}
+  input[type=range]{accent-color:var(--amber);width:100%;}
+  .rw{display:flex;align-items:center;gap:9px;}.rw output{font-family:"JetBrains Mono",monospace;color:var(--amber);font-size:14px;min-width:42px;text-align:right;}
+  .chk{display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;}.chk input{accent-color:var(--amber);width:15px;height:15px;}
+  button{font-family:"Noto Sans KR",sans-serif;font-size:13.5px;cursor:pointer;border-radius:var(--r);border:1px solid var(--line);background:var(--card);color:var(--text);padding:9px 14px;transition:all .14s;}
+  button:hover{border-color:var(--amber-dim);background:#2a231b;}
+  button:focus-visible{outline:2px solid var(--amber);outline-offset:2px;}
+  button.primary{background:var(--amber);border-color:var(--amber);color:#140e06;font-weight:500;}
+  button.primary:hover{background:#f2b658;}
+  button.sm{padding:5px 10px;font-size:12px;}
+  button.icon{padding:5px 8px;line-height:1;font-family:"JetBrains Mono",monospace;}
+  button.icon.on{background:var(--teal);border-color:var(--teal);color:#0b0f12;}
+  .palette{display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin-bottom:11px;}
+  .pchip{padding:4px 8px;font-size:12px;font-family:"JetBrains Mono",monospace;background:var(--card2);border:1px solid var(--line);border-radius:3px;color:var(--text);cursor:pointer;}
+  .pchip:hover{border-color:var(--teal);color:var(--teal);}
+  .palhint{font-size:10.5px;color:var(--muted);margin-left:4px;}
+  button.play{padding:5px 11px;font-size:12px;background:transparent;border-color:var(--teal);color:var(--teal);}
+  button.play:hover{background:rgba(79,176,168,.12);}
+  button.play.on{background:var(--amber);border-color:var(--amber);color:#140e06;font-weight:700;}
+  .btnrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+  .ribbon{display:flex;gap:2px;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;margin-bottom:14px;}
+  .seg{padding:9px 5px;text-align:center;min-width:0;cursor:pointer;}
+  .seg .nm{display:block;font-family:"Archivo",sans-serif;font-weight:700;font-size:12px;color:#140e06;}
+  .seg .mt{font-size:9px;color:rgba(20,14,6,.7);}
+  .seg.now{outline:2px solid var(--text);outline-offset:-2px;}
+  .editor{display:flex;flex-direction:column;gap:12px;}
+  .scard{background:var(--card);border:1px solid var(--line);border-left-width:4px;border-radius:var(--r);padding:12px 14px;}
+  .scard.now{box-shadow:0 0 0 1px var(--amber) inset;border-color:var(--amber);}
+  .shead{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px;}
+  .shead select{width:auto;}
+  .shead .sp{flex:1;}
+  .stool{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:11px;font-size:12px;color:var(--muted);}
+  .stool select{width:auto;font-size:12px;padding:5px 7px;}
+  .stool .mini{display:flex;align-items:center;gap:5px;}
+  .bars{display:flex;flex-wrap:wrap;gap:5px;}
+  .bar{background:var(--bg);border:1px solid var(--line);border-radius:var(--r);padding:4px;display:flex;flex-direction:column;gap:4px;min-width:50px;}
+  .bar .bhead{display:flex;align-items:center;gap:3px;}
+  .bar .bn{font-family:"JetBrains Mono",monospace;font-size:9px;color:var(--muted);}
+  .bar .bsub{font-size:10px;background:var(--card2);border:1px solid var(--line);border-radius:2px;color:var(--muted);padding:1px 3px;width:auto;}
+  .bar .bx{cursor:pointer;color:var(--muted);font-size:12px;line-height:1;padding:0 1px;user-select:none;}
+  .bar .bx:hover{color:var(--e5);}
+  .slots{display:flex;gap:2px;}
+  .slot{font-family:"JetBrains Mono",monospace;font-size:12px;text-align:center;padding:5px 1px;width:46px;background:var(--card2);border:1px solid var(--line);}
+  .slot.bad{border-color:var(--e5);}
+  .slot::placeholder{color:#5a5249;}
+  .addbar{align-self:center;border-style:dashed;color:var(--muted);}
+  .insts{display:flex;gap:7px;flex-wrap:nowrap;overflow-x:auto;flex:1 1 auto;min-width:0;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
+  .insts::-webkit-scrollbar{display:none;}
+  .ichip{flex:0 0 auto;white-space:nowrap;font-size:12.5px;border:1px solid var(--line);border-radius:18px;padding:6px 13px;cursor:pointer;background:var(--card);color:var(--muted);transition:all .14s;user-select:none;}
+  .ichip.on{background:var(--amber);border-color:var(--amber);color:#140e06;font-weight:500;}
+  .ichip:hover{border-color:var(--amber-dim);}
+  .transport{flex:0 0 auto;z-index:20;padding:9px 16px;
+    background:var(--panel);border-top:1px solid var(--line);display:flex;flex-wrap:nowrap;gap:9px;align-items:center;box-shadow:0 -8px 24px rgba(0,0,0,.4);}
+  .transport>#play,.transport>#stop{flex:0 0 auto;}
+  .transport .insts{margin-left:4px;}
+  .meta{flex:0 0 auto;margin-left:8px;color:var(--muted);font-size:12px;font-family:"JetBrains Mono",monospace;}.meta b{color:var(--amber);}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--amber-dim);display:inline-block;margin-right:7px;vertical-align:middle;}
+  .playing .dot{background:#fff;animation:pulse 1.7s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:.4;transform:scale(.85);}50%{opacity:1;transform:scale(1.4);}}
+  @media (prefers-reduced-motion:reduce){.playing .dot{animation:none;}}
+  .tip{color:var(--muted);font-size:12.5px;margin:9px 0 0;}.tip b{color:var(--text);font-weight:400;}
+
+  /* ===== 터치 최적화(패드·터치 노트북) ===== */
+  button,select,input,.ichip,.pchip,.seg,.ptoggle,.chk,.slot,.bx{touch-action:manipulation;-webkit-tap-highlight-color:transparent;}
+  button:active{transform:translateY(1px);background:var(--card2);}
+  button.primary:active{background:#d6952f;transform:translateY(1px);}
+  .ichip:active,.pchip:active,.seg:active{filter:brightness(1.25);}
+  @media (pointer:coarse){
+    select,input[type=text],input[type=number]{font-size:16px;padding:11px 12px;min-height:44px;}  /* iOS 포커스 줌 방지 + 손가락 타깃 */
+    button{min-height:44px;padding:11px 16px;font-size:15px;}
+    button.sm{min-height:40px;padding:9px 13px;font-size:13.5px;}
+    button.icon{min-height:40px;min-width:40px;padding:8px 10px;}
+    button.play{min-height:38px;padding:8px 14px;font-size:13px;}
+    .pchip{min-height:38px;padding:8px 12px;font-size:14px;display:inline-flex;align-items:center;}
+    .ichip{min-height:34px;padding:6px 12px;font-size:13px;display:inline-flex;align-items:center;border-radius:20px;}
+    .chk{min-height:40px;font-size:14.5px;gap:10px;}
+    .chk input{width:22px;height:22px;}
+    input[type=range]{height:38px;}
+    .seg{padding:13px 6px;}.seg .nm{font-size:13px;}.seg .mt{font-size:10px;}
+    .slot{width:58px;font-size:15px;padding:10px 2px;min-height:42px;}
+    .bar{padding:6px;gap:5px;min-width:64px;}
+    .bar .bx{font-size:17px;padding:4px 7px;}
+    .bar .bsub{font-size:12px;padding:3px 5px;}
+    .stool select{font-size:14px;padding:8px 10px;min-height:40px;}
+    .palette{gap:8px;}.btnrow{gap:10px;}.insts{gap:9px;}.bars{gap:8px;}.slots{gap:4px;}
+    .plabel{min-height:34px;font-size:12.5px;}
+  }
+  .transport{padding-bottom:calc(10px + env(safe-area-inset-bottom));}     /* 아이패드 홈바 회피 */
+  @media (pointer:coarse){.transport{padding-top:8px;padding-bottom:calc(8px + env(safe-area-inset-bottom));gap:7px;}
+    .transport button{min-height:38px;padding:8px 14px;font-size:14px;}
+    .transport .meta{font-size:12px;}}
+  @media (max-width:400px){.transport .meta{display:none;}}   /* 좁은 폰: 길이 표시 숨겨 악기칩 공간 확보 */
+
+  /* ===== 반응형: 아이패드·넓은 화면에서 2열(컨트롤 사이드바 + 워크스페이스) ===== */
+  .panels{display:block;}
+  @media (min-width:768px){
+    .wrap{max-width:1180px;}
+    .scroll{padding:44px 28px 26px;}
+    h1{font-size:38px;}
+    .panels{display:grid;grid-template-columns:300px minmax(0,1fr);gap:16px 18px;align-items:start;}
+    .panels .panel{margin-bottom:0;}
+    #panel1{grid-column:1;grid-row:1;}
+    #panel3{grid-column:1;grid-row:2;}
+    #panel4{grid-column:1;grid-row:3;}
+    #panel2{grid-column:2;grid-row:1 / span 3;}   /* 흐름·구조 에디터를 오른쪽 넓은 열에 */
+  }
+  @media (min-width:1024px){
+    .wrap{max-width:1280px;}
+    .scroll{padding:48px 36px 30px;}
+    h1{font-size:42px;}
+    .panels{grid-template-columns:350px minmax(0,1fr);gap:18px 22px;}
+    .panel{padding:20px 22px;}
+    .scard{padding:14px 16px;}
+    .transport{padding-left:36px;padding-right:36px;}
+    .tip{font-size:13.5px;}
+    .field label{font-size:11.5px;}
+    .meta{font-size:13px;}
+    .slot{font-size:13px;}
+  }
+  @media (min-width:1320px){
+    .wrap{max-width:1360px;}
+    .panels{grid-template-columns:380px minmax(0,1fr);gap:20px 26px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="scroll">
+  <header>
+    <h1>Band Composer <button id="guideBtn" class="guidebtn">📖 가이드</button></h1>
+  </header>
+
+  <div id="guideOverlay" class="goverlay" hidden>
+    <div class="gsheet">
+      <div class="ghead">
+        <div><div class="gkick">Conductor's Manual · 조합 레시피</div><div class="gtitle">장르별 조합 가이드</div></div>
+        <button id="guideClose" class="gclose" aria-label="닫기">✕</button>
+      </div>
+      <div id="guideBody" class="gbody"></div>
+    </div>
+  </div>
+
+  <div class="panels">
+  <div class="panel" id="panel1">
+    <div class="plabel ptoggle"><span class="n">01</span> 시작하기 <span class="chev">▾</span></div>
+    <div class="pbody">
+    <div class="grid3">
+      <div class="field"><label>스타일</label><select id="style"></select></div>
+      <div class="field"><label>기본 리듬</label><select id="groove"></select></div>
+      <div class="field"><label>스윙 %</label><input type="number" id="swing" min="0" max="100" step="5" value="0" inputmode="numeric"></div>
+    </div>
+    <div class="grid3" style="margin-top:12px;">
+      <div class="field"><label>곡 조 (전조)</label><select id="key"></select></div>
+      <div class="field"><label>박자표</label><select id="meter"></select></div>
+      <div class="field"><label>템포 BPM</label><input type="number" id="bpm" min="30" max="250" step="0.5" value="92" inputmode="decimal"></div>
+    </div>
+    <div class="btnrow" style="margin-top:14px;align-items:center;">
+      <button class="primary" id="styleRand" title="주 생성: 위 설정을 반영해 전체를 새로">🎲 작곡</button>
+      <span class="mini" style="margin-left:6px;">⏱</span>
+      <input type="number" id="fitMin" min="0" max="60" value="3" style="width:52px;" inputmode="numeric"><span class="mini">분</span>
+      <input type="number" id="fitSec" min="0" max="59" value="0" style="width:52px;" inputmode="numeric"><span class="mini">초</span>
+      <button class="sm primary" id="fitBtn">구성</button>
+      <span class="mini" id="fitOut" style="letter-spacing:0;"></span>
+    </div>
+    <div class="btnrow" style="margin-top:10px;align-items:center;">
+      <button id="flowRand" title="보조: 구조만 새로 (목표 시간 설정 시 길이 유지)">🔀 구조 랜덤</button>
+      <button id="reroll" title="보조: 구조 유지, 코드만 다시">🎲 코드 랜덤</button>
+      <div class="mini" style="opacity:.75;margin-top:4px;width:100%">위 설정을 반영해 생성합니다 · ⏱ 목표 시간 설정 시 모든 생성이 그 길이를 따릅니다</div>
+      <label class="chk" style="margin-left:6px;"><input type="checkbox" id="connect" checked> 도미넌트 연결</label>
+      <label class="chk"><input type="checkbox" id="modalMix"> 차용화음</label>
+    </div>
+    <div class="btnrow" style="margin-top:10px;align-items:center;border-top:1px solid var(--line);padding-top:12px;">
+      <span class="mini">조성</span><button class="sm" id="trDn">▼ 반음</button><button class="sm" id="trUp">▲ 반음</button>
+      <button class="sm" id="reset" style="margin-left:auto;">초기화</button>
+    </div>
+    <p class="tip" id="keyHint"></p>
+    <p class="tip" id="styleHint"></p>
+    </div>
+  </div>
+
+  <div class="panel collapsed" id="panel2">
+    <div class="plabel ptoggle"><span class="n">02</span> 흐름 & 구조 <span class="chev">▾</span></div>
+    <div class="pbody">
+    <p class="tip" style="margin:0 0 10px;">구간을 탭하면 아래에서 편집됩니다.</p>
+    <div class="ribbon" id="ribbon"></div>
+    <div class="editor" id="editor"></div>
+    <button class="sm addbar" id="addSec" style="margin-top:11px;border-style:dashed;">+ 섹션 추가</button>
+    </div>
+  </div>
+
+  <div class="panel collapsed" id="panel3">
+    <div class="plabel ptoggle"><span class="n">03</span> 연주 & 표현 <span class="chev">▾</span></div>
+    <div class="pbody">
+    <div class="btnrow" style="align-items:center;">
+      <span class="mini">보이싱</span>
+      <select id="voicing" style="min-width:150px;">
+        <option value="auto">자동 (스타일 맞춤)</option>
+        <option value="clean">클린 (트라이어드)</option>
+        <option value="lush">컬러 (9·6 텐션)</option>
+        <option value="jazz">재즈 (루트리스)</option>
+      </select>
+    </div>
+    <div class="btnrow" style="margin-top:10px;align-items:center;">
+      <span class="mini" style="letter-spacing:.08em;">피아노</span>
+      <label class="chk"><input type="checkbox" id="humanize" checked> 사람처럼</label>
+      <label class="chk"><input type="checkbox" id="pedal" checked> 페달</label>
+      <label class="chk"><input type="checkbox" id="advanced" checked> 고급 연주</label>
+      <label class="chk"><input type="checkbox" id="soloPiano"> 🎹 솔로</label>
+    </div>
+    <div class="btnrow" style="margin-top:8px;align-items:center;">
+      <button class="sm" id="humReseed">🎲 연주 변형</button>
+      <button class="sm" id="melReseed">🎲 멜로디 변형</button>
+      <label class="chk" style="margin-left:6px;"><input type="checkbox" id="arrDyn"> 편곡 다이내믹</label>
+    </div>
+    <div class="btnrow" style="margin-top:10px;align-items:center;border-top:1px solid var(--line);padding-top:12px;">
+      <span class="mini" style="letter-spacing:.08em;">양 끝</span>
+      <label class="chk"><input type="checkbox" id="introTheme"> 리드 테마</label>
+      <label class="chk"><input type="checkbox" id="introFull"> 풀밴드</label>
+    </div>
+    <p class="tip">양 끝(인트로·아웃트로)은 기본 <b>분위기 모드</b> — 선율 없이 필터가 열리며 빌드업/페이드아웃. 도입 선율이 필요하면 <b>리드 테마</b>.</p>
+    </div>
+  </div>
+
+  <div class="panel collapsed" id="panel4">
+    <div class="plabel ptoggle"><span class="n">04</span> 🧘 사운드 명상 <span class="chev">▾</span></div>
+    <div class="pbody">
+    <div class="btnrow" style="align-items:center;">
+      <span class="mini" style="letter-spacing:.08em;">지속음</span>
+      <label class="chk"><input type="checkbox" id="droneOn"> 드론</label>
+      <label class="chk"><input type="checkbox" id="droneFifth" checked> +5도</label>
+    </div>
+    <div class="btnrow" style="margin-top:8px;align-items:center;">
+      <span class="mini">호흡</span>
+      <select id="breathPattern" style="min-width:130px;"></select>
+      <button class="sm primary" id="breathBtn">🫁 맞춤</button>
+      <span class="mini" id="breathOut" style="letter-spacing:0;"></span>
+    </div>
+    <p class="tip"><b>드론</b>은 조 으뜸음(+5도) 저음 패드를 곡 전체에 지속. <b>호흡 맞춤</b>은 한 호흡을 정수 마디에 정렬하고 믹스 전체가 그 리듬으로 숨쉽니다(들숨↑밝게 / 날숨↓어둡게). 드론 없이도 작동.</p>
+    </div>
+  </div>
+
+  <div class="panel collapsed" id="panel5">
+    <div class="plabel ptoggle"><span class="n">05</span> 내보내기 & 저장 <span class="chev">▾</span></div>
+    <div class="pbody">
+    <div class="btnrow">
+      <button class="sm primary" id="exAll">🎼 전체 MIDI + 송시트</button>
+      <button class="sm" data-inst="piano">피아노</button>
+      <button class="sm" data-inst="bass">베이스</button>
+      <button class="sm" data-inst="guitar">기타</button>
+      <button class="sm" data-inst="drums">드럼</button>
+      <button class="sm" data-inst="melody">멜로디</button>
+    </div>
+    <p class="tip">전체 내보내기는 <b>.mid + 송시트(.txt)</b>를 함께 저장합니다. MIDI에는 조표·박자·템포·구간 마커(코드 진행)가 컨덕터(글로벌) 트랙에 기록돼 로직에서 그대로 보입니다. 악기별 버튼은 그 악기만 따로 내보내요. 연주 설정(휴머나이즈·페달·솔로)은 <b>03 연주 & 표현</b>에 있습니다.</p>
+    <div class="btnrow" style="margin-top:12px;border-top:1px solid var(--line);padding-top:12px;">
+      <button class="sm primary" id="saveLocal">브라우저에 저장</button>
+      <button class="sm" id="loadLocal">불러오기</button>
+      <button class="sm" id="exJson">프로젝트 파일(.json) 내보내기</button>
+      <label class="sm" for="imJson" style="cursor:pointer;display:inline-flex;align-items:center;">.json 열기</label>
+      <input type="file" id="imJson" accept=".json,application/json" style="display:none;">
+    </div>
+    <p class="tip" id="saveMsg">.json은 <b>이 편집기에서 곡을 다시 열어 고치기 위한 ‘프로젝트 저장본’</b>이에요(음악 파일 아님). 로직 등 DAW로 가져갈 음악은 위 <b>전체 MIDI</b>를 쓰세요.</p>
+    </div>
+  </div>
+  </div><!-- /.panels -->
+  </div><!-- /scroll -->
+
+  <div class="transport" id="transport">
+    <button class="primary" id="play"><span class="dot"></span>전체 재생</button>
+    <button id="stop" disabled>정지</button>
+    <div class="insts" id="insts"></div>
+    <span class="meta">길이 <b id="lenTag">—</b></span>
+  </div>
+</div>
+
+<script>
+/* ===== 음악 기초 ===== */
+const NOTE=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const ROOTPC={C:0,D:2,E:4,F:5,G:7,A:9,B:11};
+const MAJ_OFF=[0,2,4,5,7,9,11];
+const QUAL={maj:[0,4,7],min:[0,3,7],dim:[0,3,6],aug:[0,4,8],dom7:[0,4,7,10],min7:[0,3,7,10],
+  maj7:[0,4,7,11],m7b5:[0,3,6,10],dim7:[0,3,6,9],sus4:[0,5,7],sus2:[0,2,7],six:[0,4,7,9],
+  add9:[0,4,7,14],maj9:[0,4,7,11,14],min9:[0,3,7,10,14],dom9:[0,4,7,10,14]};
+const QSYM={maj:'',min:'m',dim:'dim',aug:'aug',dom7:'7',min7:'m7',maj7:'maj7',m7b5:'m7b5',
+  dim7:'dim7',sus4:'sus4',sus2:'sus2',six:'6',add9:'add9',maj9:'maj9',min9:'m9',dom9:'9'};
+const ROMAN={I:0,II:1,III:2,IV:3,V:4,VI:5,VII:6};
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+
+function parseSym(str){
+  if(!str)return null;str=str.trim();
+  const m=str.match(/^([A-Ga-g])([#♯b♭]?)(.*)$/);if(!m)return null;
+  let pc=ROOTPC[m[1].toUpperCase()];if(pc===undefined)return null;
+  if(m[2]==='#'||m[2]==='♯')pc++;if(m[2]==='b'||m[2]==='♭')pc--;pc=((pc%12)+12)%12;
+  const s=m[3];let q;
+  if(/^(m7b5|min7b5|ø)/.test(s))q='m7b5';
+  else if(/^(dim7|°7|o7)/.test(s))q='dim7';
+  else if(/^(dim|°)/.test(s))q='dim';
+  else if(/^maj9/i.test(s)||/^M9/.test(s))q='maj9';
+  else if(/^maj7/i.test(s)||/^M7/.test(s)||/^△/.test(s))q='maj7';
+  else if(/^add9/.test(s))q='add9';
+  else if(/^sus2/.test(s))q='sus2';
+  else if(/^sus/.test(s))q='sus4';
+  else if(/^(aug|\+)/.test(s))q='aug';
+  else if(/^(m9|min9)/.test(s))q='min9';
+  else if(/^(m7|min7)/.test(s))q='min7';
+  else if(/^(m|min|-)/.test(s))q='min';
+  else if(/^6/.test(s))q='six';
+  else if(/^9/.test(s))q='dom9';
+  else if(/^7/.test(s))q='dom7';
+  else q='maj';
+  return {pc,q};
+}
+const symDisplay=(pc,q)=>NOTE[pc]+QSYM[q];
+function normSym(str){const p=parseSym(str);return p?symDisplay(p.pc,p.q):str.trim();}
+function transposeSym(str,d){const p=parseSym(str);return p?symDisplay(((p.pc+d)%12+12)%12,p.q):str;}
+function makeChord(pc,q){const iv=QUAL[q];let pb=60+pc;while(pb>71)pb-=12;let br=40+pc;while(br>47)br-=12;
+  let gc=52+pc;while(gc>63)gc-=12;return {piano:iv.map(x=>pb+x),bass:br,guitar:iv.map(x=>gc+x),power:[gc,gc+7,gc+12],symbol:symDisplay(pc,q),pc,q};}
+function chordFromSym(str){const p=parseSym(str);return p?makeChord(p.pc,p.q):null;}
+function romanToSym(tok,keyPc){
+  let acc=0,i=0;while(tok[i]==='b'||tok[i]==='#'){acc+=tok[i]==='b'?-1:1;i++;}
+  let r='';while(i<tok.length&&/[IiVv]/.test(tok[i])){r+=tok[i];i++;}
+  const deg=ROMAN[r.toUpperCase()],upper=/[IV]/.test(r[0]),suf=tok.slice(i);let q;
+  if(/ø|m7b5/.test(suf))q='m7b5';else if(/dim7/.test(suf))q='dim7';else if(/dim/.test(suf))q='dim';
+  else if(/aug|\+/.test(suf))q='aug';else if(/sus2/.test(suf))q='sus2';else if(/sus/.test(suf))q='sus4';
+  else if(/add9/.test(suf))q='add9';else if(/M9|maj9/.test(suf))q='maj9';else if(/M7|maj7|△/.test(suf))q='maj7';
+  else if(/9/.test(suf))q=upper?'dom9':'min9';else if(/7/.test(suf))q=upper?'dom7':'min7';
+  else if(/6/.test(suf))q='six';else q=upper?'maj':'min';
+  const pc=(((keyPc+MAJ_OFF[deg]+acc)%12)+12)%12;return symDisplay(pc,q);
+}
+const domOf=sym=>{const p=parseSym(sym);return p?symDisplay((p.pc+7)%12,'dom7'):sym;};
+/* 모달 인터체인지(차용화음): 장조 진행에 나란한 단조에서 빌린 화음을 섞어 팝록·시티팝 색 */
+function borrowRoman(tok){
+  const m=String(tok).match(/^([b#]*)([IiVv]+)(.*)$/);if(!m)return tok;
+  const acc=m[1],num=m[2],suf=m[3],upper=/[IV]/.test(num[0]),R=num.toUpperCase();
+  if(acc!=='')return tok;                                   // 이미 차용/변화음이면 그대로
+  const r=Math.random();
+  if(R==='IV'&&upper){if(r<0.55)return 'iv'+suf.replace(/M9|maj9/,'9').replace(/M7|maj7|△/,'7');} // IV→iv (단4화음)
+  if(R==='V'){if(r<0.22)return 'bVII';}                     // V→bVII (믹솔리디안 록 케이던스)
+  if(R==='VI'&&!upper){if(r<0.18)return 'bVI';}             // vi→bVI (차용 6도)
+  if(R==='I'&&upper&&/M7|maj7|△/.test(suf)){if(r<0.14)return 'I7';} // Imaj7→I7 (블루지 도미넌트)
+  return tok;
+}
+
+/* ===== 스타일 풀 ===== */
+const STYLES=[
+ {id:'ballad',name:'Ballad',tempo:[62,84],groove:'ballad8',hint:'잔잔하고 눈물어린 메이저 발라드.',pool:[
+   {name:'감성 · vi7–IVM7–IM7–V7',r:['vi7','IVM7','IM7','V7']},{name:'눈물 · IM7–vi7–IVM7–V7',r:['IM7','vi7','IVM7','V7']},
+   {name:'2-5-1 · vi7–ii7–V7–IM7',r:['vi7','ii7','V7','IM7']}]},
+ {id:'jballad',name:'J-Ballad',tempo:[80,96],groove:'ballad8',hint:'세컨더리 도미넌트·반감7·감7 경과화음의 우수.',pool:[
+   {name:'Royal Road · IVM7–V7–iii7–vi7',r:['IVM7','V7','iii7','vi7']},{name:'Royal Road 해결 · IVM7–V7–IM7–vi7',r:['IVM7','V7','IM7','vi7']},
+   {name:'하행 · I–viiø–III7–vi–ii7–V7',r:['I','viiø','III7','vi','ii7','V7']},{name:'2-5-1 · ii7–V7–IM7–vi7',r:['ii7','V7','IM7','vi7']}]},
+ {id:'royalroad',name:'J-Pop (Royal Road)',tempo:[100,132],groove:'8beat',hint:'밝으면서 애틋한 일본 대중가요 정석.',pool:[
+   {name:'Royal Road · IVM7–V7–iii7–vi',r:['IVM7','V7','iii7','vi']},{name:'Canon · I–V–vi–iii–IV–I–IV–V',r:['I','V','vi','iii','IV','I','IV','V']},
+   {name:'밝은 2-5 · IM7–vi7–ii7–V7',r:['IM7','vi7','ii7','V7']}]},
+ {id:'marusa',name:'City Pop',tempo:[84,112],groove:'citypop16',hint:'Just the Two of Us 진행. 세련·우수.',pool:[
+   {name:'Marusa · IVM7–III7–vi7–I7',r:['IVM7','III7','vi7','I7']},{name:'City Pop · ii7–V7–iii7–VI7',r:['ii7','V7','iii7','VI7']},
+   {name:'세련 · IM7–VI7–ii7–V7',r:['IM7','VI7','ii7','V7']}]},
+ {id:'komuro',name:'90s J-Pop',tempo:[118,140],groove:'8beat',hint:'90년대 질주 팝 vi–IV–V–I.',pool:[
+   {name:'Komuro · vi–IV–V–I',r:['vi','IV','V','I']},{name:'Komuro 7th · vi7–IVM7–V7–IM7',r:['vi7','IVM7','V7','IM7']},
+   {name:'상승 · vi–V–IV–V',r:['vi','V','IV','V']}]},
+ {id:'animerock',name:'Anime Rock',tempo:[140,180],groove:'8drive',hint:'어둡고 강렬한 단조 앤섬.',pool:[
+   {name:'Anthem · i–bVI–bIII–bVII',r:['i','bVI','bIII','bVII']},{name:'Drive · i–bVII–bVI–bVII',r:['i','bVII','bVI','bVII']},
+   {name:'Eva · i–bVII–iv–bIII',r:['i','bVII','iv','bIII']}]},
+ {id:'billie',name:'Dark Pop',tempo:[100,130],groove:'halftime',hint:'단조·감화음 경과·확장화음의 어둡고 성긴 사운드.',pool:[
+   {name:'Mystery · IM7–iii7–IVM7',r:['IM7','iii7','IVM7']},{name:'Dark · i–bVI–bIII–bVII',r:['i','bVI','bIII','bVII']},
+   {name:'감 경과 · i–viiø–bVI',r:['i','viiø','bVI']},{name:'Gloom · i–iv–bVI–bVII',r:['i','iv','bVI','bVII']}]},
+ {id:'ukpop',name:'Britpop',tempo:[108,140],groove:'8beat',hint:'믹솔리디안 bVII·차용 iv·add9 잰글.',pool:[
+   {name:'Anthem · I–V–vi–IV',r:['I','V','vi','IV']},{name:'Mixolydian · I–bVII–IV–I',r:['I','bVII','IV','I']},
+   {name:'Beatles move · I–IV–iv–I',r:['I','IV','iv','I']},{name:'Jangle · Iadd9–iii–IV–Iadd9',r:['Iadd9','iii','IV','Iadd9']}]},
+ {id:'worship',name:'Worship (CCM)',tempo:[72,134],groove:'8beat',hint:'1–5–6–4/1–4–6–5에 sus·add 컬러.',pool:[
+   {name:'1–5–6–4 · I–V–vi–IV',r:['I','V','vi','IV']},{name:'1–4–6–5 · I–IV–vi–V',r:['I','IV','vi','V']},
+   {name:'6–4–1–5 · vi–IV–I–V',r:['vi','IV','I','V']},{name:'sus · Isus4–I–vi7–IVadd9',r:['Isus4','I','vi7','IVadd9']}]},
+ {id:'celtic',name:'Celtic Folk',tempo:[96,132],groove:'celtic68',meter:'6/8',hint:'믹솔리디안 bVII·도리안·드론, 오픈(sus) 코드.',pool:[
+   {name:'Mixolydian · I–bVII–IV–I',r:['I','bVII','IV','I']},{name:'Dorian · i–bVII–i–IV',r:['i','bVII','i','IV']},
+   {name:'Air · i–bVII–bVI–bVII',r:['i','bVII','bVI','bVII']},{name:'Drone sus · Isus2–IVsus2–bVII–Isus2',r:['Isus2','IVsus2','bVII','Isus2']},
+   {name:'Reel · I–IV–I–V',r:['I','IV','I','V']}]},
+ {id:'funk',name:'Funk / R&B',tempo:[96,116],groove:'funk16',hint:'정적 코드 위 9th + 16비트 신코페이션.',pool:[
+   {name:'I9 vamp',r:['I9','I9','I9','I9']},{name:'i7–IV7',r:['i7','i7','IV7','IV7']},{name:'R&B · IM7–iii7–vi7–ii7',r:['IM7','iii7','vi7','ii7']}]},
+ {id:'neosoul',name:'Neo-Soul',tempo:[76,96],groove:'citypop16',hint:'9th·maj7의 재지한 ii–V.',pool:[
+   {name:'IM9–vi9–ii9–V9',r:['IM9','vi9','ii9','V9']},{name:'IM7–IVM7–iii7–vi7',r:['IM7','IVM7','iii7','vi7']},
+   {name:'ii9–V9–IM9–VI7',r:['ii9','V9','IM9','VI7']}]},
+ {id:'gospel',name:'Gospel',tempo:[66,96],groove:'shuffle',hint:'경과 감7·세컨더리 도미넌트, 트리플렛.',pool:[
+   {name:'2-5-1 · IM7–VI7–ii7–V7',r:['IM7','VI7','ii7','V7']},{name:'경과 · I–I7–IV–#ivdim7',r:['I','I7','IV','#ivdim7']},
+   {name:'Amazing · I–III7–vi7–I7–IV–iv–I–V7',r:['I','III7','vi7','I7','IV','iv','I','V7']}]},
+ {id:'poppunk',name:'Pop Punk',tempo:[150,190],groove:'8drive',hint:'질주 파워코드 위 밝은 4코드.',pool:[
+   {name:'I–V–vi–IV',r:['I','V','vi','IV']},{name:'vi–IV–I–V',r:['vi','IV','I','V']},{name:'IV–V–vi–IV',r:['IV','V','vi','IV']}]},
+ {id:'country',name:'Americana',tempo:[96,132],groove:'8beat',hint:'I–IV–V 또렷한 메이저.',pool:[
+   {name:'I–IV–V',r:['I','IV','V','V']},{name:'I–V–vi–IV',r:['I','V','vi','IV']},{name:'I–IV–I–V',r:['I','IV','I','V']}]},
+ {id:'countrypop',name:'Country Pop',tempo:[100,140],groove:'8beat',hint:'어쿠스틱 잰글 위 I–V–vi–IV, add9 오픈코드.',pool:[
+   {name:'Pop · I–V–vi–IV',r:['I','V','vi','IV']},{name:'Bright · I–IV–V',r:['I','IV','V','V']},
+   {name:'감성 · vi–IV–I–V',r:['vi','IV','I','V']},{name:'Jangle add9 · Iadd9–V–vi–IVadd9',r:['Iadd9','V','vi','IVadd9']}]},
+ {id:'kpop',name:'K-Pop',tempo:[100,132],groove:'8beat',hint:'로열로드·액시스에 단조 앤섬·전조까지 폭넓게 차용.',pool:[
+   {name:'Axis · I–V–vi–IV',r:['I','V','vi','IV']},{name:'Royal Road · IVM7–V7–iii7–vi',r:['IVM7','V7','iii7','vi']},
+   {name:'Minor Anthem · i–bVI–bVII–bVI',r:['i','bVI','bVII','bVI']},{name:'감성 · vi–IV–I–V',r:['vi','IV','I','V']},
+   {name:'드랍 · i–bVII–bVI–bVII',r:['i','bVII','bVI','bVII']}]},
+ {id:'motown',name:'Motown',tempo:[116,138],groove:'8beat',hint:'두왑 + 또렷한 백비트.',pool:[
+   {name:'Doo-wop · I–vi–IV–V',r:['I','vi','IV','V']},{name:'Motown · I–iii–IV–V',r:['I','iii','IV','V']},{name:'Soul · IM7–vi7–ii7–V7',r:['IM7','vi7','ii7','V7']}]},
+ {id:'epic',name:'Epic Orchestra (Trailer)',tempo:[90,132],groove:'epicorch',hint:'단조 모달(i–bVI–bVII)·저현 오스티나토·브라스 히트·팀파니·탐탐. 어벤져스류 트레일러 대편성. 단조 조성으로 곡 조(Key) 선택.',pool:[
+   {name:'Epic Loop · i–bVI–bVII–i',r:['i','bVI','bVII','i']},
+   {name:'Trailer · i–bVI–bIII–bVII',r:['i','bVI','bIII','bVII']},
+   {name:'Rising · i–iv–bVI–V',r:['i','iv','bVI','V']},
+   {name:'Heroic · i–bVII–bVI–V',r:['i','bVII','bVI','V']}]},
+ {id:'animeost',name:'Anime Orchestra (OST)',tempo:[80,124],groove:'animeorch',hint:'장조의 벅찬 대편성 — 현 소어링 멜로디·프렌치 혼 카운터·목관·심벌. 히사이시/열혈 애니 OST 결.',pool:[
+   {name:'Royal Sky · IVM7–V–iii7–vi',r:['IVM7','V','iii7','vi']},
+   {name:'Soar · I–V–vi–IV',r:['I','V','vi','IV']},
+   {name:'Adventure · I–IV–V–vi',r:['I','IV','V','vi']},
+   {name:'Emotional · vi–IV–I–V',r:['vi','IV','I','V']}]},
+ {id:'saguk',name:'Aeolian / 사극 (Oriental)',tempo:[54,82],groove:'saguk',hint:'에이올리안·펜타토닉·드론. 동양적 사극 OST. 단조 조성으로 곡 조(Key) 선택.',pool:[
+   {name:'에이올리안 · i–bVII–bVI–bVII',r:['i','bVII','bVI','bVII']},
+   {name:'모달 종지 · i–bVII–bVI–v',r:['i','bVII','bVI','v']},
+   {name:'하행 · i–v–bVI–iv',r:['i','v','bVI','iv']},
+   {name:'도리안 채색 · i–IV–i–bVII',r:['i','IV','i','bVII']},
+   {name:'프리지안 · i–bII–i–bVII',r:['i','bII','i','bVII']},
+   {name:'드론 위 · isus2–bVII–bVIM7–v',r:['isus2','bVII','bVIM7','v']},
+   {name:'장중 · i–iv–bVII–bIII',r:['i','iv','bVII','bIII']},
+   {name:'순환 · i–bVI–bVII–i',r:['i','bVI','bVII','i']}]},
+];
+const styleById=id=>STYLES.find(s=>s.id===id);
+const ROCK=['animerock','poppunk','ukpop','komuro'];
+
+/* ===== 섹션 타입 / 박자 / 그루브 ===== */
+const STYPES={Intro:{ko:'인트로',energy:2},Verse:{ko:'벌스',energy:2},PreChorus:{ko:'프리코러스',energy:3},
+  Buildup:{ko:'빌드업',energy:4,build:true},Chorus:{ko:'코러스',energy:5},PostChorus:{ko:'포스트코러스',energy:5},Bridge:{ko:'브릿지',energy:3},Outro:{ko:'아웃트로',energy:1}};
+const EHEX=['','var(--e1)','var(--e2)','var(--e3)','var(--e4)','var(--e5)'];
+const METERS={'4/4':{q:4,num:4,dp:2},'3/4':{q:3,num:3,dp:2},'2/4':{q:2,num:2,dp:2},'6/8':{q:3,num:6,dp:3},
+  '12/8':{q:6,num:12,dp:3},'5/4':{q:5,num:5,dp:2},'7/8':{q:3.5,num:7,dp:3},'9/8':{q:4.5,num:9,dp:3},
+  '5/8':{q:2.5,num:5,dp:3},'10/8':{q:5,num:10,dp:3}};
+/* 호흡 패턴 프리셋 (SUM WAVE 기준) — 들숨:날숨 초 단위 */
+const BREATH_PATTERNS={
+  auto:    {ko:'목적 자동 (명상 4:6)', in:4, out:6},
+  basic:   {ko:'기본 1:2',            in:1, out:2},
+  relax:   {ko:'이완 2:4',            in:2, out:4},
+  med:     {ko:'명상 4:6',            in:4, out:6},
+  equal:   {ko:'균등 4:4',            in:4, out:4},
+  coherent:{ko:'코히런트 5:5',         in:5, out:5},
+  longout: {ko:'긴 날숨 4:8',          in:4, out:8},
+};
+const GROOVES={ballad8:{name:'발라드 8비트',kick:[0,10],snare:[4,12],hatRes:8,feel:'straight'},
+  '8beat':{name:'8비트 팝',kick:[0,6,8],snare:[4,12],hatRes:8,feel:'straight'},
+  '16beat':{name:'16비트',kick:[0,3,8,11],snare:[4,12],hatRes:16,feel:'straight'},
+  citypop16:{name:'시티팝 16비트',kick:[0,8,11],snare:[4,12],ghost:[7,15],hatRes:16,feel:'straight'},
+  shuffle:{name:'셔플/스윙',kick:[0,8],snare:[4,12],hatRes:8,feel:'swing'},
+  halftime:{name:'하프타임',kick:[0,10],snare:[8],hatRes:8,feel:'straight'},
+  epicorch:{name:'오케 타악(트레일러)',orch:1,feel:'straight'},
+  animeorch:{name:'오케 타악(마칭)',orch:1,march:1,feel:'straight'},
+  fourfloor:{name:'포 온 더 플로어(쿵쿵쿵쿵)',kick:[0,4,8,12],snare:[4,12],hatRes:16,feel:'straight'},
+  bossa:{name:'보사노바',kick:[0,6,8,14],snare:[3,10],hatRes:8,feel:'straight'},
+  '8drive':{name:'8비트 드라이브(록)',kick:[0,2,6,8,10,14],snare:[4,12],hatRes:8,feel:'straight'},
+  funk16:{name:'펑크 16비트',kick:[0,3,8,10,14],snare:[4,12],ghost:[7],hatRes:16,feel:'straight'},
+  celtic68:{name:'켈틱 6/8',kick:[0,6],snare:[3,9],hatRes:8,feel:'straight'},
+  saguk:{name:'사극(드론·타악)',kick:[0,8,12],snare:[],hatRes:8,feel:'straight',bare:true},
+  '332':{name:'3+3+2 (트레시요)',kick:[0,6,12],snare:[4,12],hatRes:16,feel:'straight'},
+  '5_32':{name:'5/8 (3+2)',kick:[0,6],snare:[6],hatRes:8,feel:'straight'},
+  '5_23':{name:'5/8 (2+3)',kick:[0,4],snare:[4],hatRes:8,feel:'straight'},
+  '10_3232':{name:'10/8 (3+2+3+2)',kick:[0,6,10,16],snare:[6,16],hatRes:8,feel:'straight'},
+  '10_2323':{name:'10/8 (2+3+2+3)',kick:[0,4,10,14],snare:[4,14],hatRes:8,feel:'straight'},
+  rubato:{name:'루바토 (드럼 없음)',rubato:true,feel:'straight'}};
+const META_GROOVE={'5/8':'5_32','10/8':'10_3232'};
+
+/* ===== 상태 ===== */
+const $=id=>document.getElementById(id);
+let state={style:'ballad',active:0,sections:[],enabled:{piano:true,bass:true,guitar:true,drums:true,melody:false,counter:false,lead:true,drone:false},loop:false,melSeed:(Math.random()*1e9)|0,swing:0,humanize:true,pedal:true,humSeed:(Math.random()*1e9)|0,voicing:'auto',advanced:true,introTheme:false,introFull:false,soloPiano:false,breathRate:6,breathAlign:false,droneFifth:true,breathPattern:'med',breathIn:4,breathOut:6,modalMix:false,arrDyn:false,targetSec:null};
+let focused=null; // 코드 팔레트용 마지막 포커스 슬롯
+let prevKeyPc=0; // 현재 곡 조(전조 기준)
+const keyPc=()=>+$('key').value,globMeter=()=>$('meter').value,grooveId=()=>$('groove').value;
+const secMeter=s=>s.meter==='inherit'?globMeter():s.meter;
+const secGroove=s=>(s.groove&&s.groove!=='inherit')?s.groove:grooveId();
+const secTempo=s=>(s.tempo&&s.tempo!=='inherit')?+s.tempo:(+$('bpm').value||92);
+const secKey=s=>(s.key!=null?s.key:prevKeyPc);
+const curStyle=()=>styleById(state.style);
+
+function fillGrid(sec,prog){const km=keyPc(),n=sec.grid?sec.grid.length:4,g=[];
+  for(let i=0;i<n;i++){let tok=prog.r[i%prog.r.length];if(state.modalMix)tok=borrowRoman(tok);g.push([romanToSym(tok,km)]);}sec.grid=g;sec.key=km;}
+function connectLeadins(){if(!$('connect').checked)return;
+  for(let i=0;i<state.sections.length-1;i++){const g=state.sections[i].grid,nb=state.sections[i+1].grid;
+    if(!g.length||!nb.length||!nb[0][0])continue;const lb=g[g.length-1];lb[lb.length-1]=domOf(nb[0][0]);}}
+/* 종지 성형: 구간의 역할(잇기/맺기)을 진행에 반영 — 풀 순환의 우연에 맡기지 않음
+   · 맺기(마지막 구간): 마지막 마디 = 온마디 토닉 홀드, 직전 셀 = 종지 도미넌트(V7→I / 모달은 bVII→i) → 뚝 끊김 방지
+   · 잇기(프리코러스·빌드업·브릿지→코러스): 마지막 셀이 도미넌트가 아니면 V7(bVII)로 — 연결 OFF에도 진입 보장 */
+const MODAL_CADENCE={saguk:1,celtic:1,epic:1};                       // 에이올리안·믹솔리디안: bVII 종지가 어법
+function cadenceShape(){
+  const secs=state.sections;if(!secs.length)return;
+  const km=keyPc();
+  let tonicCnt=0,minCnt=0;secs.forEach(s=>s.grid.forEach(b=>b.forEach(sym=>{const c=sym&&chordFromSym(sym);if(c&&c.pc===km){tonicCnt++;if(/^(min|dim)/.test(c.q))minCnt++;}})));
+  const isMin=(tonicCnt>0&&minCnt/tonicCnt>=0.5);             // 토닉 화질 다수결(사극 등 단조 풀은 i가 다수)
+  const modal=!!MODAL_CADENCE[state.style];
+  const tonic=romanToSym(isMin?'i':'I',km);
+  const dom=romanToSym(modal?'bVII':'V7',km);
+  const isDomish=sym=>{const c=sym&&chordFromSym(sym);return !!c&&(/dom/.test(c.q)||(modal&&c.pc===(km+10)%12));};
+  const isCadential=sym=>{const c=sym&&chordFromSym(sym);if(!c)return false;                 // 종지 직전 허용: V(정격)·IV(플레이걸/블루스)·모달 bVII
+    return c.pc===(km+7)%12||c.pc===(km+5)%12||(modal&&c.pc===(km+10)%12);};
+  // 맺기: 마지막 구간
+  const g=secs[secs.length-1].grid;
+  if(g.length){
+    g[g.length-1]=[tonic];                                    // 마지막 마디: 토닉 홀드
+    if(g.length>=2){const pb=g[g.length-2];if(!isCadential(pb[pb.length-1]))pb[pb.length-1]=dom;}
+  }
+  // 잇기: 연결 OFF일 때 도미넌트 진입 보장(ON이면 connectLeadins가 이미 처리)
+  if(!$('connect').checked){
+    for(let i=0;i<secs.length-1;i++){const t=secs[i].type,nx=secs[i+1].type;
+      const launch=(t==='PreChorus'||t==='Buildup'||(t==='Bridge'&&(nx==='Chorus'||nx==='PostChorus')));
+      if(!launch)continue;const gg=secs[i].grid;if(!gg.length)continue;const lb=gg[gg.length-1];
+      if(!isDomish(lb[lb.length-1]))lb[lb.length-1]=dom;
+    }
+  }
+}
+/* 섹션 타입별로 같은 진행을 공유(반복 구간 일관성) */
+/* 진행을 섹션 타입별로 공유 — randomize면 무작위, 아니면 대표값(첫 진행=코러스) */
+function assignByType(randomize){
+  const pool=curStyle().pool,n=pool.length;let idx;
+  if(randomize){const rnd=()=>Math.floor(Math.random()*n);idx={Verse:rnd(),Chorus:rnd(),Bridge:rnd(),PreChorus:rnd()};if(n>1&&idx.Chorus===idx.Verse)idx.Chorus=(idx.Verse+1)%n;}
+  else idx={Chorus:0,Verse:Math.min(1,n-1),Bridge:Math.min(2,n-1),PreChorus:Math.min(1,n-1)};
+  idx.Intro=idx.Verse;idx.Outro=idx.Chorus;idx.Buildup=idx.PreChorus;idx.PostChorus=idx.Chorus; // 포스트코러스는 코러스 진행 공유(훅)
+  state.sections.forEach(s=>{s._lastProg=idx[s.type]??idx.Verse;fillGrid(s,pool[s._lastProg]);});
+  connectLeadins();
+  cadenceShape();                                             // 구간 역할(잇기/맺기)을 진행에 반영
+}
+const GENTLE_INTRO={ballad:1,jballad:1,worship:1,billie:1,celtic:1,saguk:1,royalroad:1,country:1}; // 절제된 양 끝(쿵쾅대지 않음)
+const grooveForType=(t,rock,energetic)=>t==='Intro'?(energetic?'inherit':(Math.random()<0.5?'rubato':'ballad8'))
+  :t==='Bridge'?'halftime':t==='Buildup'?(Math.random()<0.5?'fourfloor':'8drive')
+  :t==='Chorus'||t==='PostChorus'?(rock?'8drive':'inherit'):t==='Outro'?(energetic?'inherit':(Math.random()<0.5?'rubato':'ballad8')):'inherit';
+/* 스타일별 ‘가장 잘 쓰이는’ 흐름(구조) */
+const FORMS={
+ pop:[['Intro',4],['Verse',8],['PreChorus',4],['Chorus',8],['Verse',8],['PreChorus',4],['Chorus',8],['Bridge',8],['Chorus',8],['Outro',4]],
+ versechorus:[['Intro',2],['Verse',8],['Chorus',8],['Verse',8],['Chorus',8],['Bridge',4],['Chorus',8],['Outro',2]],
+ ballad:[['Intro',4],['Verse',8],['Chorus',8],['Verse',8],['Chorus',8],['Bridge',8],['Chorus',8],['Outro',6]],
+ rock:[['Intro',4],['Verse',8],['PreChorus',4],['Chorus',8],['Verse',8],['PreChorus',4],['Chorus',8],['Buildup',4],['Chorus',8],['Outro',4]],
+ worship:[['Intro',4],['Verse',8],['Chorus',8],['Verse',8],['Chorus',8],['Bridge',8],['Chorus',8],['Chorus',8],['Outro',4]],
+ groove:[['Intro',4],['Verse',8],['Chorus',8],['Verse',8],['Chorus',8],['Bridge',8],['Chorus',8],['Outro',4]],
+ folk:[['Intro',4],['Verse',8],['Chorus',8],['Verse',8],['Chorus',8],['Verse',8],['Chorus',8],['Outro',4]],
+ minimal:[['Intro',4],['Verse',8],['PreChorus',4],['Chorus',8],['Verse',8],['Chorus',8],['Outro',4]],
+ coldopen:[['Chorus',4],['Verse',8],['PreChorus',4],['Chorus',8],['Verse',8],['Chorus',8],['Bridge',4],['Chorus',8],['Outro',4]],          // 훅 먼저(콜드 오픈)
+ postchorus:[['Intro',4],['Verse',8],['PreChorus',4],['Chorus',8],['PostChorus',4],['Verse',8],['PreChorus',4],['Chorus',8],['PostChorus',4],['Bridge',4],['Chorus',8],['PostChorus',4],['Outro',4]], // 포스트코러스 훅
+ shortsecond:[['Intro',2],['Verse',8],['PreChorus',4],['Chorus',8],['Verse',4],['PreChorus',2],['Chorus',8],['Bridge',4],['Chorus',8],['Outro',2]], // 짧은 2절(모던)
+ drop:[['Intro',4],['Verse',8],['Buildup',4],['Chorus',8],['Verse',8],['Buildup',4],['Chorus',8],['Bridge',4],['Buildup',4],['Chorus',8],['Outro',4]], // 빌드업→드롭
+ doublehook:[['Intro',2],['Verse',8],['PreChorus',4],['Chorus',8],['PostChorus',4],['Verse',8],['Chorus',8],['PostChorus',4],['Chorus',8],['Outro',4]], // 훅 헤비
+};
+const FORM_BY_STYLE={jballad:'ballad',royalroad:'pop',marusa:'versechorus',komuro:'pop',animerock:'rock',
+ billie:'minimal',ballad:'ballad',ukpop:'rock',worship:'worship',celtic:'folk',funk:'groove',neosoul:'groove',
+ gospel:'groove',poppunk:'rock',country:'pop',countrypop:'pop',motown:'versechorus',kpop:'postchorus',saguk:'folk'};
+/* 스타일 기본값 적용: 구조 + 박자 + 템포 + 리듬 (randomize면 변주) */
+function applyStyleDefaults(randomize){
+  const st=curStyle(),rock=ROCK.includes(st.id),energetic=!GENTLE_INTRO[st.id];state.active=0;
+  state.sections=FORMS[FORM_BY_STYLE[st.id]||'pop'].map(([type,bars])=>({type,meter:'inherit',groove:grooveForType(type,rock,energetic),grid:Array.from({length:bars},()=>[''])}));
+  if((GROOVES[st.groove]||{}).bare||(GROOVES[st.groove]||{}).orch)state.sections.forEach(s=>s.groove='inherit');   // 사극·오케: 스타일 타악 문법을 전 구간에
+  const t=randomize?st.tempo[0]+Math.floor(Math.random()*(st.tempo[1]-st.tempo[0]+1)):Math.round((st.tempo[0]+st.tempo[1])/2);
+  $('bpm').value=t;$('groove').value=st.groove;$('meter').value=st.meter||'4/4';
+  assignByType(randomize);
+}
+/* ===== 시간 맞춤 구성: 목표 초 → 프레이즈 단위 구조 + BPM 미세 보정 ===== */
+function buildFormForBars(n,energetic){                    // n=짝수 총 마디, 4마디 프레이즈 지향
+  if(n<8)return [['Verse',Math.max(2,n)]];
+  if(n<16)return [['Intro',2],['Verse',n-4],['Outro',2]];
+  if(n<24){let v=Math.round((n-8)/4)*2;v=Math.max(4,Math.min(v,n-12));
+    return [['Intro',2],['Verse',v],['Chorus',n-6-v],['Outro',4]];}
+  const segs=[['Intro',4],['Verse',8],['Chorus',8]];let used=20,outro=4;
+  const cycle=[['Verse',8],['Chorus',8],['Bridge',4],['Chorus',8],['Chorus',8]];let gi=0;
+  while(used+outro+cycle[gi%cycle.length][1]<=n){const g=cycle[gi%cycle.length];segs.push([g[0],g[1]]);used+=g[1];gi++;}
+  let r=n-used-outro;                                      // 남은 짝수 0~6 → 아웃트로/인트로에 배분
+  if(r>=4){outro+=4;r-=4;}if(r>=2){if(outro<8){outro+=2;}else segs[0][1]+=2;r-=2;}
+  // 아웃트로 직전은 코러스로 끝나게(벌스로 끝나면 직전 코러스와 순서 스왑)
+  const li=segs.length-1;
+  if(segs[li][0]==='Verse'){for(let i=li-1;i>0;i--)if(segs[i][0]==='Chorus'){[segs[i],segs[li]]=[segs[li],segs[i]];break;}}
+  segs.push(['Outro',outro]);
+  return segs;
+}
+function fitToDuration(targetSec){
+  if(!(targetSec>=10&&targetSec<=3600)){$('fitOut').textContent='10초~60분 사이로 입력하세요';return;}
+  const st=curStyle(),rock=ROCK.includes(st.id),energetic=!GENTLE_INTRO[st.id];
+  const bpb=METERS[globMeter()].q;let bpm=+$('bpm').value;
+  let n=Math.max(4,Math.round(targetSec/(bpb*60/bpm)/2)*2);       // 짝수 마디로 환산
+  state.active=0;
+  state.sections=buildFormForBars(n,energetic).map(([type,bars])=>({type,meter:'inherit',groove:grooveForType(type,rock,energetic),grid:Array.from({length:bars},()=>[''])}));
+  {const g0=GROOVES[curStyle().groove]||{};if(g0.bare||g0.orch)state.sections.forEach(sx=>sx.groove='inherit');}   // 사극·오케: 시간맞춤 구조에서도 타악 문법 유지
+  assignByType(false);                                            // 스타일 진행으로 코드 채움
+  arrange();                                                      // 1차 실측
+  let adj=bpm*MODEL.totalSec/targetSec;                           // 시간∝1/BPM → 비례 보정
+  adj=Math.max(30,Math.min(250,Math.round(adj*10)/10));
+  $('bpm').value=adj;
+  arrange();                                                      // 2차 실측(최종)
+  const err=MODEL.totalSec-targetSec,mm=Math.floor(MODEL.totalSec/60),ss=(MODEL.totalSec%60).toFixed(1);
+  $('fitOut').textContent=`${n}마디 · BPM ${adj} → ${mm}:${String(ss).padStart(4,'0')} (오차 ${err>=0?'+':''}${err.toFixed(1)}초)`;
+  renderEditor();updateRibbon();$('panel2').classList.remove('collapsed');
+}
+/* 목표 시간 단일 소스: 어디서 시간을 만지든 이 경로 하나 — 상태·메인 입력칸·구조 재계산이 항상 동기화 */
+function setTargetSec(sec){
+  sec=Math.round(+sec||0);state.targetSec=sec>0?sec:null;
+  const fm=$('fitMin'),fs=$('fitSec');
+  if(fm)fm.value=state.targetSec?Math.floor(state.targetSec/60):'';
+  if(fs)fs.value=state.targetSec?String(state.targetSec%60):'';
+  if(state.targetSec)fitToDuration(state.targetSec);
+  else{const fo=$('fitOut');if(fo)fo.textContent='목표 시간 해제';}
+}
+function genSong(){state.melSeed=(Math.random()*1e9)|0;state.humSeed=(Math.random()*1e9)|0;applyStyleDefaults(true);
+  if(state.targetSec){fitToDuration(state.targetSec);assignByType(true);}   // 시간 최우선(랜덤 코드 유지)
+  renderEditor();updateRibbon();}
+function defaultSong(){applyStyleDefaults(false);}
+/* 흐름 랜덤 — 스타일은 유지하되 구조(폼) 자체를 다양하게 */
+const FORM_KEYS=['pop','versechorus','ballad','rock','worship','groove','folk','minimal','coldopen','postchorus','shortsecond','drop','doublehook'];
+function genFlowRandom(){
+  const st=curStyle(),rock=ROCK.includes(st.id),energetic=!GENTLE_INTRO[st.id];state.active=0;state.melSeed=(Math.random()*1e9)|0;
+  let form=FORMS[pick(FORM_KEYS)].map(x=>x.slice());
+  // 약간의 변형: 가끔 브리지/추가 코러스 삽입, 마디수 흔들기
+  if(Math.random()<0.4)form.splice(Math.max(1,form.length-2),0,['Chorus',8]);
+  if(Math.random()<0.3&&!form.some(f=>f[0]==='Bridge'))form.splice(Math.floor(form.length/2),0,['Bridge',Math.random()<0.5?4:8]);
+  form=form.map(([t,b])=>[t,Math.max(2,b+(Math.random()<0.3?(Math.random()<0.5?-2:2):0))]);
+  state.sections=form.map(([type,bars])=>({type,meter:'inherit',groove:grooveForType(type,rock,energetic),grid:Array.from({length:bars},()=>[''])}));
+  {const g0=GROOVES[grooveId()]||{};if(g0.bare||g0.orch)state.sections.forEach(sx=>sx.groove='inherit');}   // 사극·오케: 구조 랜덤에서도 타악 문법 유지
+  assignByType(true);
+  if(state.targetSec){fitToDuration(state.targetSec);assignByType(true);}   // 시간 최우선
+  renderEditor();updateRibbon();$('panel2').classList.remove('collapsed');
+}
+(function init(){
+  NOTE.forEach((n,i)=>{const o=document.createElement('option');o.value=i;o.textContent=n;if(n==='C')o.selected=true;$('key').appendChild(o);});
+  Object.keys(METERS).forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m;$('meter').appendChild(o);});
+  STYLES.forEach(s=>{const o=document.createElement('option');o.value=s.id;o.textContent=s.name;$('style').appendChild(o);});
+  Object.entries(GROOVES).forEach(([k,v])=>{const o=document.createElement('option');o.value=k;o.textContent=v.name;$('groove').appendChild(o);});
+  Object.entries(BREATH_PATTERNS).forEach(([k,v])=>{const o=document.createElement('option');o.value=k;o.textContent=v.ko;if(k==='med')o.selected=true;$('breathPattern').appendChild(o);});
+  ['piano','bass','guitar','drums','melody','counter','lead','drone'].forEach(k=>{const L={piano:'피아노',bass:'베이스',guitar:'기타',drums:'드럼',melody:'멜로디',counter:'🎸 대선율',lead:'리드(테마)',drone:'🧘 드론'};
+    const el=document.createElement('div');el.className='ichip'+(state.enabled[k]?' on':'');el.dataset.k=k;el.textContent=L[k];
+    el.onclick=()=>{state.enabled[k]=!state.enabled[k];el.classList.toggle('on',state.enabled[k]);
+      const tgt=state.enabled[k]?1:0;
+      if(BUS[k]&&ctx){BUS[k].gain.cancelScheduledValues(ctx.currentTime);BUS[k].gain.setTargetAtTime(tgt,ctx.currentTime,0.012);} // 클릭 없이 즉시 반영
+      else if(BUS[k])BUS[k].gain.value=tgt;
+      if(k==='drone'){const cb=$('droneOn');if(cb)cb.checked=state.enabled.drone;}}; // 04 패널 체크박스와 동기화
+    $('insts').appendChild(el);});
+  $('style').value='ballad';$('groove').value='ballad8';prevKeyPc=+$('key').value;defaultSong();keyHintUpdate();
+})();
+
+/* ===== 섹션 / 흐름 렌더 ===== */
+function secLenQ(s){return s.grid.length*METERS[secMeter(s)].q;}
+function updateRibbon(){
+  if(state.active>=state.sections.length)state.active=state.sections.length-1;if(state.active<0)state.active=0;
+  const rib=$('ribbon');rib.innerHTML='';
+  state.sections.forEach((s,i)=>{const el=document.createElement('div');el.className='seg'+(i===state.active?' sel':'');el.dataset.i=i;el.style.flex=secLenQ(s);
+    el.style.background=EHEX[STYPES[s.type].energy];
+    const tb=(s.tempo&&s.tempo!=='inherit')?(' · ♩'+s.tempo):'';
+    el.innerHTML=`<span class="nm">${STYPES[s.type].ko}</span><span class="mt">${s.grid.length}·${secMeter(s)}${tb}</span>`;
+    el.onclick=()=>selectSection(i);rib.appendChild(el);});
+  $('lenTag').textContent=fmt(state.sections.reduce((a,s)=>a+secLenQ(s)*(60/secTempo(s)),0));
+}
+function selectSection(i){state.active=i;renderEditor();updateRibbon();
+  document.querySelector('#editor .scard')?.scrollIntoView({behavior:'smooth',block:'nearest'});}
+function subOptions(meter){const num=METERS[meter].num;const opts=[[1,'1코드'],[2,'2분할']];if(num!==2)opts.push([num,'박마다']);return opts;}
+function renderEditor(){
+  const ed=$('editor');ed.innerHTML='';focused=null;
+  if(!state.sections.length){$('styleHint').textContent=curStyle().hint;return;}
+  if(state.active>=state.sections.length)state.active=state.sections.length-1;if(state.active<0)state.active=0;
+  const idx=state.active,sec=state.sections[idx];
+    const E=STYPES[sec.type].energy,meter=secMeter(sec);
+    const card=document.createElement('div');card.className='scard';card.dataset.i=idx;card.style.borderLeftColor=EHEX[E];
+    const head=document.createElement('div');head.className='shead';
+    const tsel=document.createElement('select');Object.entries(STYPES).forEach(([k,v])=>{const o=document.createElement('option');o.value=k;o.textContent=v.ko;if(k===sec.type)o.selected=true;tsel.appendChild(o);});
+    tsel.onchange=e=>{sec.type=e.target.value;renderEditor();updateRibbon();};
+    const msel=document.createElement('select');let oi=document.createElement('option');oi.value='inherit';oi.textContent='박자=기본';msel.appendChild(oi);
+    Object.keys(METERS).forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m;msel.appendChild(o);});msel.value=sec.meter;
+    msel.onchange=e=>{sec.meter=e.target.value;if(META_GROOVE[sec.meter])sec.groove=META_GROOVE[sec.meter];renderEditor();updateRibbon();};
+    const ssel=document.createElement('select');ssel.title='빌드업 단계 — 악기 진입·드럼 밀도·셈여림을 단계로';
+    {const o=document.createElement('option');o.value='0';o.textContent='빌드=자동';ssel.appendChild(o);}
+    Object.entries(STAGES).forEach(([k,v])=>{const o=document.createElement('option');o.value=k;o.textContent=v.ko;ssel.appendChild(o);});
+    ssel.value=String(+sec.stage||0);
+    ssel.onchange=e=>{sec.stage=+e.target.value||0;arrange();updateRibbon();if(playing)playSection(state.active);};
+    const playB=document.createElement('button');playB.className='play secplay';playB.dataset.i=idx;
+    playB.textContent=(playing&&playSec===idx)?'⏹ 정지':'▶ 이 구간';playB.classList.toggle('on',playing&&playSec===idx);
+    playB.onclick=()=>{if(playing&&playSec===idx)stop();else playSection(idx);};
+    const loopB=document.createElement('button');loopB.className='icon'+(state.loop?' on':'');loopB.textContent='🔁';loopB.title='이 구간 반복';
+    loopB.onclick=()=>{state.loop=!state.loop;loopB.classList.toggle('on',state.loop);if(state.loop)playSection(idx);};
+    const dup=document.createElement('button');dup.className='icon';dup.textContent='⧉';dup.title='이 구간 복제';
+    dup.onclick=()=>{const copy=JSON.parse(JSON.stringify(sec));state.sections.splice(idx+1,0,copy);state.active=idx+1;renderEditor();updateRibbon();};
+    const up=document.createElement('button');up.className='icon';up.textContent='↑';up.onclick=()=>{if(idx>0){[state.sections[idx-1],state.sections[idx]]=[state.sections[idx],state.sections[idx-1]];state.active=idx-1;renderEditor();updateRibbon();}};
+    const dn=document.createElement('button');dn.className='icon';dn.textContent='↓';dn.onclick=()=>{if(idx<state.sections.length-1){[state.sections[idx+1],state.sections[idx]]=[state.sections[idx],state.sections[idx+1]];state.active=idx+1;renderEditor();updateRibbon();}};
+    const rm=document.createElement('button');rm.className='icon';rm.textContent='✕';rm.onclick=()=>{if(state.sections.length>1){state.sections.splice(idx,1);state.active=Math.min(idx,state.sections.length-1);renderEditor();updateRibbon();}};
+    const sp=document.createElement('span');sp.className='sp';
+    head.append(tsel,msel,ssel,sp,playB,loopB,dup,up,dn,rm);card.appendChild(head);
+
+    const tool=document.createElement('div');tool.className='stool';
+    const psel=document.createElement('select');curStyle().pool.forEach((p,pi)=>{const o=document.createElement('option');o.value=pi;o.textContent=p.name;psel.appendChild(o);});psel.value=sec._lastProg??0;
+    const fillB=document.createElement('button');fillB.className='sm';fillB.textContent='채우기';
+    fillB.onclick=()=>{sec._lastProg=+psel.value;fillGrid(sec,curStyle().pool[+psel.value]);renderEditor();};
+    const m1=document.createElement('span');m1.className='mini';m1.append('진행:',psel);
+    const gsel=document.createElement('select');let go=document.createElement('option');go.value='inherit';go.textContent='리듬=기본';gsel.appendChild(go);
+    Object.entries(GROOVES).forEach(([k,v])=>{const o=document.createElement('option');o.value=k;o.textContent=v.name;gsel.appendChild(o);});gsel.value=sec.groove||'inherit';
+    gsel.onchange=e=>{sec.groove=e.target.value;};
+    const m2=document.createElement('span');m2.className='mini';m2.append('리듬:',gsel);
+    const tsp=document.createElement('input');tsp.type='number';tsp.className='bsub';tsp.style.width='54px';tsp.min='30';tsp.max='250';
+    tsp.placeholder=String(+$('bpm').value);tsp.value=(sec.tempo&&sec.tempo!=='inherit')?sec.tempo:'';
+    tsp.onchange=()=>{const v=parseInt(tsp.value,10);sec.tempo=(v&&v>=30&&v<=250)?v:'inherit';updateRibbon();};
+    const mT=document.createElement('span');mT.className='mini';mT.append('템포:',tsp);
+    const modSel=document.createElement('select');
+    for(let pc=0;pc<12;pc++){const o=document.createElement('option');o.value=pc;o.textContent=NOTE[pc];modSel.appendChild(o);}
+    modSel.value=secKey(sec);
+    const modHint=document.createElement('span');modHint.className='palhint';
+    modSel.onchange=e=>{const target=+e.target.value,cur=secKey(sec);let d=target-cur;
+      if(d){modulateFrom(idx,target);let dn=d;while(dn>6)dn-=12;while(dn<-6)dn+=12;modHint.textContent='이 구간부터 '+NOTE[target]+' · '+feelOf(dn);}};
+    const m3=document.createElement('span');m3.className='mini';m3.append('조:',modSel);
+    tool.append(m1,fillB,m2,mT,m3,modHint);card.appendChild(tool);
+
+    const pal=document.createElement('div');pal.className='palette';
+    const plab=document.createElement('span');plab.className='palhint';plab.textContent='빠른입력▸';pal.appendChild(plab);
+    const km=keyPc();const palTokens=['I','ii','iii','IV','V','vi','IM7','ii7','iii7','IVM7','V7','vi7','Isus4','IVadd9'];
+    const seen=new Set();
+    palTokens.map(t=>romanToSym(t,km)).forEach(symv=>{if(seen.has(symv))return;seen.add(symv);
+      const b=document.createElement('button');b.className='pchip';b.textContent=symv;
+      b.onpointerdown=e=>e.preventDefault();
+      b.onclick=()=>{if(focused){focused.bar[focused.si]=symv;focused.el.value=symv;focused.el.classList.remove('bad');focused.el.focus();}
+        else{sec.grid[0][0]=symv;renderEditor();}};
+      pal.appendChild(b);});
+    card.appendChild(pal);
+
+    const bars=document.createElement('div');bars.className='bars';
+    sec.grid.forEach((bar,bi)=>{
+      const bd=document.createElement('div');bd.className='bar';
+      const bh=document.createElement('div');bh.className='bhead';
+      const bn=document.createElement('span');bn.className='bn';bn.textContent=(bi+1);
+      const minus=document.createElement('span');minus.className='bx';minus.textContent='－';minus.title='코드 칸 빼기';
+      minus.onclick=()=>{if(bar.length>1){bar.pop();renderEditor();}};
+      const cnt=document.createElement('span');cnt.className='bn';cnt.textContent=bar.length;
+      const plus=document.createElement('span');plus.className='bx';plus.textContent='＋';plus.title='코드 칸 추가';
+      plus.onclick=()=>{bar.push(bar[bar.length-1]||'');renderEditor();};
+      const bx=document.createElement('span');bx.className='bx';bx.textContent='✕';bx.title='마디 삭제';
+      bx.onclick=()=>{if(sec.grid.length>1){sec.grid.splice(bi,1);renderEditor();updateRibbon();}};
+      bh.append(bn,minus,cnt,plus,bx);bd.appendChild(bh);
+      const sl=document.createElement('div');sl.className='slots';
+      bar.forEach((sym,si)=>{const inp=document.createElement('input');inp.className='slot';inp.type='text';inp.value=sym;inp.placeholder='–';
+        inp.onfocus=()=>{focused={bar,si,el:inp};};
+        inp.oninput=()=>{bar[si]=inp.value;inp.classList.toggle('bad',!!inp.value.trim()&&!parseSym(inp.value));};
+        inp.onblur=()=>{if(inp.value.trim()){const nv=normSym(inp.value);bar[si]=nv;inp.value=nv;inp.classList.toggle('bad',!parseSym(nv));}};
+        sl.appendChild(inp);});
+      bd.appendChild(sl);bars.appendChild(bd);
+    });
+    const ab=document.createElement('button');ab.className='sm addbar';ab.textContent='+마디';
+    ab.onclick=()=>{const last=sec.grid[sec.grid.length-1];sec.grid.push([last?last[0]:'']);renderEditor();updateRibbon();};
+    bars.appendChild(ab);card.appendChild(bars);ed.appendChild(card);
+  $('styleHint').textContent=curStyle().hint+'  · 기본 그루브: '+GROOVES[grooveId()].name;
+}
+
+/* ===== 편곡 (그리드 → 이벤트) ===== */
+let MODEL=null,curFeel='straight',curSwing=0,curPerf={bass:'eighths',comp:'block',gtr:'strum'};
+const swOff=(t,step)=>(curSwing>0&&step===0.5&&Math.round(t/0.5)%2===1)?curSwing*0.165:0;
+/* ===== 휴머나이즈(실연주 느낌) ===== 시드 고정 → 재생과 내보낸 MIDI가 항상 동일 */
+let pRng=Math.random;                                   // arrange()에서 humSeed로 재시드
+const pj=a=>(pRng()*2-1)*a;                              // 좌우 대칭 흔들림
+const vClamp=v=>Math.max(1,Math.min(127,Math.round(v)));
+/* 페달을 쓰는 컴핑(레가토·지속 계열). stab은 스타카토라 페달 제외 */
+const PEDAL_COMP={broken:1,pad:1,block:1,gospel:1,syncop:1,arp:1,oriental:1};
+const ANTIC_COMP={syncop:1,stab:1,block:1,gospel:1};        // 리듬 푸시(앤티시페이션)가 어울리는 컴핑
+const SPACE_COMP={syncop:1,stab:1,gospel:1,block:1};        // 공간 비우기 대상(엇박을 가끔 쉼)
+let pedSegs=[];                                          // arrange() 동안 코드 셀별 페달 구간 수집
+/* 박자별 ‘실제 박(felt pulse)’ 위치 — 4분음=1 단위. 복합/변박은 드럼 박에 맞춤 */
+const METER_PULSE={'4/4':[0,1,2,3],'3/4':[0,1,2],'2/4':[0,1],'6/8':[0,1.5],'12/8':[0,1.5,3,4.5],
+  '5/4':[0,1,2,3,4],'7/8':[0,1,2],'9/8':[0,1.5,3],'5/8':[0,1.5],'10/8':[0,1.5,3,4]};
+const GROOVE_PULSE={'5_32':[0,1.5],'5_23':[0,1],'10_3232':[0,1.5,2.5,4],'10_2323':[0,1,2.5,3.5],'332':[0,1.5,3]};
+const pulsesOf=(meter,gid)=>GROOVE_PULSE[gid]||METER_PULSE[meter]||[0,1,2,3];
+/* 스타일별 연주 프로파일 — 베이스 주법 / 피아노 컴핑 / 기타 주법 */
+const PERF={
+  ballad:   {bass:'sustain', comp:'broken', gtr:'arp'},
+  jballad:  {bass:'sustain', comp:'broken', gtr:'arp'},
+  royalroad:{bass:'eighths', comp:'block',  gtr:'strum'},
+  marusa:   {bass:'synco',   comp:'syncop', gtr:'chuck16'},   // City Pop
+  komuro:   {bass:'octave',  comp:'stab',   gtr:'strum'},     // 90s J-Pop dance
+  animerock:{bass:'eighths', comp:'pad',    gtr:'power'},
+  billie:   {bass:'sustain', comp:'pad',    gtr:'none'},      // Dark Pop, sparse
+  ukpop:    {bass:'root5',   comp:'block',  gtr:'strum'},     // Britpop
+  worship:  {bass:'sustain', comp:'pad',    gtr:'arp'},
+  celtic:   {bass:'root5',   comp:'arp',    gtr:'arp'},
+  funk:     {bass:'funk16',  comp:'stab',   gtr:'chuck16'},
+  neosoul:  {bass:'synco',   comp:'syncop', gtr:'chuck16'},
+  gospel:   {bass:'walk',    comp:'gospel', gtr:'strum'},
+  poppunk:  {bass:'eighths', comp:'block',  gtr:'power'},
+  country:  {bass:'root5',   comp:'arp',    gtr:'arp'},        // Americana
+  countrypop:{bass:'root5',  comp:'block',  gtr:'strum'},
+  kpop:     {bass:'synco',   comp:'stab',   gtr:'chuck16'},
+  motown:   {bass:'octave',  comp:'block',  gtr:'chuck16'},
+  epic:     {bass:'eighths', comp:'pad',    gtr:'power'},   // 오케 트레일러: 저현 8분 오스티나토 + 현 패드 + 브라스 히트
+  animeost: {bass:'eighths', comp:'block',  gtr:'strum'},   // 애니 오케: 마르카토 블록 + 브라스
+  saguk:    {bass:'drone',   comp:'oriental',gtr:'none', scale:'penta'}
+};
+
+/* ===== 보이싱 엔진 — 연주 수준을 결정하는 핵심 ===== */
+/* 스타일별 기본 보이싱 성향. jazz=루트리스+텐션, lush=컬러 더한 다이어토닉, clean=원화음 */
+const VOI_PROFILE={neosoul:'jazz',gospel:'jazz',jballad:'jazz',marusa:'jazz',worship:'jazz',
+  ballad:'lush',kpop:'lush',motown:'lush',royalroad:'lush',countrypop:'lush',billie:'lush',country:'lush'};
+function voiceProfile(){const v=state.voicing;if(v&&v!=='auto')return v;return VOI_PROFILE[state.style]||'clean';}
+/* 화음 품질→보이싱 음정(근음 기준 반음, 12 초과 가능). 베이스가 근음을 가지므로 재즈는 루트리스 */
+function voicingOffsets(q,prof){
+  const base=(QUAL[q]||[0,4,7]).slice();
+  if(prof==='clean')return base;
+  if(prof==='lush'){const s=new Set(base);
+    if(['maj','maj7','six','add9','dom7','min','min7','dom9','maj9','min9'].includes(q))s.add(14); // 9th
+    if(q==='maj'||q==='six')s.add(9);                                                              // 6th
+    return [...s];}
+  const J={ // 재즈 루트리스(가이드톤 3·7 + 텐션 9/11/13)
+    maj:[4,9,7,14],maj7:[4,11,7,14],maj9:[4,11,7,14],six:[4,9,7,14],add9:[4,7,14],
+    dom7:[4,10,14,9],dom9:[4,10,14,9],min:[3,7,10,14],min7:[3,7,10,14],min9:[3,7,10,14],
+    m7b5:[3,6,10,5],dim:[0,3,6],dim7:[0,3,6,9],sus4:[5,7,10,14],sus2:[2,7,14],aug:[0,4,8]};
+  return (J[q]||base).slice();
+}
+/* 보이스리딩 실현: 공통음은 이전 옥타브 그대로 유지(부드러운 연결), 나머지는 최소 이동 */
+function realizeVoicing(pcSet,prev,FLOOR,CEIL){
+  const center=(prev&&prev.length)?prev.reduce((a,b)=>a+b,0)/prev.length:64;
+  let notes=pcSet.map(pc=>{const P=((pc%12)+12)%12;
+    if(prev&&prev.length){const same=prev.find(p=>((p%12)+12)%12===P);if(same!=null)return same;} // 공통음 유지
+    let x=P+12*Math.round((center-P)/12);while(x<FLOOR)x+=12;while(x>CEIL)x-=12;return x;});
+  notes=notes.map(m=>{while(m<FLOOR)m+=12;while(m>CEIL)m-=12;return m;});
+  notes=[...new Set(notes)].sort((a,b)=>a-b);
+  // 저역 뭉침 방지
+  if(notes.length>=3&&notes[1]-notes[0]<=2&&notes[0]<58){const up=notes[0]+12;
+    if(!notes.includes(up)&&up<=CEIL){notes.shift();notes.push(up);notes.sort((a,b)=>a-b);}}
+  // 5음 이상 빽빽하면 가장 좁게 붙은 안쪽 음을 옥타브 띄움
+  if(notes.length>=5){let mi=1,md=99;for(let i=1;i<notes.length-1;i++){const dd=notes[i]-notes[i-1];if(dd<md){md=dd;mi=i;}}
+    const up=notes[mi]+12;if(up<=CEIL){notes.splice(mi,1);notes.push(up);notes.sort((a,b)=>a-b);}}
+  return notes;
+}
+function voiceChord(pcs,prev,ctx){
+  const FLOOR=53,CEIL=81;
+  let pcSet;
+  if(ctx&&ctx.q!=null){const offs=voicingOffsets(ctx.q,voiceProfile());
+    pcSet=[...new Set(offs.map(o=>(((ctx.pc+o)%12)+12)%12))];}
+  else pcSet=[...new Set(pcs.map(p=>((p%12)+12)%12))];
+  let notes=realizeVoicing(pcSet,prev,FLOOR,CEIL);
+  /* 탑 보이스 정리: 멜로디가 있으면 그 아래로 비켜 주고, 없으면 이전 탑과 부드럽게 잇는다 */
+  const tt=ctx&&ctx.topTarget;
+  if(tt!=null&&notes.length>=2){
+    const ti=notes.length-1;
+    if(ctx.melodyMode){                                    // 멜로디 명확히 위에 두기 → 컴핑 탑을 한 톤 아래로
+      if(notes[ti]>=tt-1){const nt=notes[ti]-12;if(nt>=FLOOR&&nt!==notes[ti-1]){notes[ti]=nt;notes=[...new Set(notes)].sort((a,b)=>a-b);}}
+    }else{                                                 // 탑라인 매끈하게: 탑 음의 옥타브를 이전 탑에 가장 가깝게
+      const pc=notes[ti]%12;let best=notes[ti],bd=Math.abs(notes[ti]-tt);
+      for(let m=pc;m<=CEIL;m+=12){if(m<FLOOR||m<=notes[ti-1])continue;const dd=Math.abs(m-tt);if(dd<bd){bd=dd;best=m;}}
+      if(best!==notes[ti]){notes[ti]=best;notes=[...new Set(notes)].sort((a,b)=>a-b);}
+    }
+  }
+  return notes;
+}
+function arrange(){
+  const tracks={piano:[],bass:[],guitar:[],drums:[],melody:[],counter:[],drone:[],pedal:[]},sview=[];let cur=0,prevVoi=null;const ns=state.sections.length;
+  melRng=mul32((state.melSeed||1)>>>0);melLast=null;MOTIFS=buildMotifs();   // 훅 모티프: 곡당 1회 생성
+  melRhyMotif=null;melBarSeen=-1;melBarCount=0;melLeapDir=0;
+  pRng=mul32((state.humSeed||1)>>>0);pedSegs=[];           // 휴머나이즈 재시드 + 페달 구간 초기화
+  curPerf=PERF[state.style]||{bass:'eighths',comp:'block',gtr:'strum'};
+  const ROOTSEQ=[];state.sections.forEach(sc=>sc.grid.forEach(bar=>{let j=0;while(j<bar.length){const nm=normSym(bar[j]||'');let k=j+1;while(k<bar.length&&normSym(bar[k]||'')===nm)k++;const c=chordFromSym(bar[j]);if(c)ROOTSEQ.push(c.pc);j=k;}}));let cellIdx=0;
+  state.sections.forEach((sec,si)=>{
+    const meter=secMeter(sec),M=METERS[meter],info=STYPES[sec.type],start=cur,nb=sec.grid.length;
+    // 인트로/아웃트로: 메인 테마를 악기 리드로 제시·회상(북엔드). 밴드는 스타일에 맞춰 채움
+    const isCap=(sec.type==='Intro'||sec.type==='Outro');
+    const themeOn=state.introTheme&&isCap;
+    const atmos=isCap&&!state.introTheme;                  // 분위기 모드(선율 없이 지속 패드+필터 스윕)
+    const amask=state.arrDyn?arrMask(sec,si):null;         // 편곡 다이내믹 마스크(켜졌을 때만)
+    const motPlan=(!atmos)?renderMotifSection(sec,start,M.q):null;let motIdx=0;   // 훅 모티프 플랜(노래 구간)
+    melRhyMotif=null;                                       // 섹션마다 새 리듬 모티브(프레이즈 아이디어)
+    const wantFull=themeOn&&(state.introFull||!GENTLE_INTRO[state.style]);
+    let gid=secGroove(sec);
+    // 풀밴드 양 끝인데 그루브가 루바토(드럼 없음)면 → 드라이브로 치환해 훅이 몰아치게
+    if(wantFull&&(GROOVES[gid]||{}).rubato)gid=!(GROOVES[grooveId()]||{}).rubato?grooveId():'8drive';
+    const G=GROOVES[gid]||GROOVES['8beat'],isRub=!!G.rubato;curFeel=G.feel||'straight';
+    const bts=pulsesOf(meter,gid);
+    curSwing=Math.max(state.swing,curFeel==='swing'?0.6:0);
+    let themeNotes=null;
+    if(themeOn){const motif=buildMotif(M.q);themeNotes=renderTheme(motif,start,M.q,nb,themeScale());themeNotes.forEach(n=>tracks.melody.push(n));}
+    sec.grid.forEach((bar,bi)=>{
+      const barStart=cur;let e=info.energy,buildLast=false;
+      if(info.build){e=Math.min(5,2+Math.floor(bi/Math.max(1,nb-1)*3));buildLast=bi===nb-1;}
+      const stg=(!info.build&&+sec.stage>=1)?stageProfile(Math.min(6,+sec.stage),state.style):null;   // 빌드업 단계(빌드업 섹션은 자체 램프)
+      if(stg)e=stg.e;
+      if(themeOn){                                          // 밴드 강도: 활기찬 스타일은 풀밴드, 절제 스타일은 차분히(옵션 A면 전부 풀밴드)
+        if(state.introFull||!GENTLE_INTRO[state.style])e=Math.max(e,4);else e=Math.max(e,2);
+      }
+      const prevSec=state.sections[si-1];
+      const entryAccent=bi===0&&(sec.type==='Bridge'||(prevSec&&STYPES[prevSec.type]&&STYPES[prevSec.type].build));   // 브릿지 진입·빌드업 직후: 구조적 크래시
+      const crash=(stg?(stg.crash&&bi===0):(bi===0&&(sec.type==='Chorus'||e>=5)))||entryAccent;
+      const fill=!isRub&&!buildLast&&(stg
+        ?(stg.fill>0&&(((bi+1)%(stg.fill===2?2:4)===0&&bi<nb-1)||(bi===nb-1&&si<ns-1)))
+        :((bi===nb-1&&si<ns-1)||(e>=4&&(bi+1)%4===0&&bi<nb-1)));
+      const dm=stg?stg.dr:(amask?amask.drums:true);                                  // 단계 > 편곡 다이내믹 > 기본
+      if(!atmos&&dm)drumBar(gid,meter,dm==='light'?(stg?1:Math.min(e,2)):e,dm==='light'?(entryAccent?crash:false):crash,buildLast,dm==='light'?false:fill,barStart,tracks.drums);
+      else if(!atmos&&entryAccent)tracks.drums.push({t:barStart,type:'crash',vel:92});   // 드럼이 빠진 브레이크다운에도 크래시 한 방은 울림
+      const slotDur=M.q/bar.length,melE=isRub?1:(stg?stg.mel:(buildLast?2:e));
+      // 같은 코드가 이어지면 한 구간으로 묶어 끊지 않고 연주(타이)
+      let j=0;
+      while(j<bar.length){
+        const norm=normSym(bar[j]||'');let k=j+1;
+        while(k<bar.length&&normSym(bar[k]||'')===norm)k++;
+        const ch=chordFromSym(bar[j]);
+        if(ch){
+          const pcs=ch.piano.map(p=>p%12);
+          const s=barStart+j*slotDur,d=(k-j)*slotDur,bb=M.q,nextRoot=ROOTSEQ[cellIdx+1]!=null?ROOTSEQ[cellIdx+1]:null;
+          if(atmos){                                                             // ===== 분위기 모드: 선율 없는 지속 패드 =====
+            ch.piano=voiceChord(pcs,prevVoi,{pc:ch.pc,q:ch.q,topTarget:(prevVoi?prevVoi[prevVoi.length-1]:null),melodyMode:false});prevVoi=ch.piano;
+            atmosRegion(ch,s,d,tracks,sec.type==='Intro',nb>1?bi/(nb-1):0.5);
+            pedSegs.push({t0:s,t1:s+d});cellIdx++;j=k;continue;
+          }
+          // 멜로디(또는 테마)를 기준으로 피아노가 그 아래로 비켜 줌
+          let melTop, mMode;
+          if(themeOn){melTop=nearestTheme(themeNotes,s);mMode=melTop!=null;}   // 인트로/아웃트로: 테마가 리드, 랜덤 멜로디 생략
+          else{const _mi=tracks.melody.length;
+            if(motPlan){while(motIdx<motPlan.length&&motPlan[motIdx].t<s+d-1e-6){tracks.melody.push(motPlan[motIdx++]);}
+              const got=tracks.melody.slice(_mi);melTop=got.length?Math.max(...got.map(n=>n.midi)):null;}
+            else melTop=melodyRegion(ch,s,d,melE,tracks.melody,bb,barStart,bts);
+            mMode=state.enabled.melody&&melTop!=null;
+            const melForCell=motPlan?motPlan.filter(n=>n.t<s+d-1e-6&&n.t+n.dur>s+1e-6):tracks.melody.slice(_mi);   // 셀에 '걸친' 멜로디까지 전달(지속음 침범 방지)
+            if(!stg||stg.ct)counterRegion(ch,s,d,melE,tracks.counter,melForCell,bb,barStart);}   // 대선율: 단계가 허용할 때(항상 생성, 칩으로 오디오·내보내기 게이트)
+          const prevTop=(prevVoi&&prevVoi.length)?prevVoi[prevVoi.length-1]:null;
+          ch.piano=voiceChord(pcs,prevVoi,{pc:ch.pc,q:ch.q,topTarget:mMode?melTop:prevTop,melodyMode:mMode});prevVoi=ch.piano;
+          ch.guitar=ch.piano.slice(-3).map(m=>{m-=12;while(m<50)m+=12;return m;}).sort((a,b)=>a-b);
+          if(stg?stg.ba:(!amask||amask.bass))bassRegion(ch,s,d,melE,tracks.bass,nextRoot,bb,barStart,bts);   // 단계 > 편곡 다이내믹
+          /* === 솔로 피아노(화려한 반주): 피아노만 켜져 있거나 토글 시 — 왼손 베이스+오른손 아르페지오+프레이즈 런 === */
+          let opt={};
+          opt.solo=state.soloPiano||(state.enabled.piano&&!state.enabled.bass&&!state.enabled.drums&&!state.enabled.guitar);
+          if(opt.solo)opt.fill=e>=2&&!isRub&&((bi+1)%4===0||bi===nb-1);   // 4마디·섹션 끝에 화려한 런
+          /* === 고급 연주: 프레이즈 다이내믹 아치 · 공간 · 앤티시페이션 · 어프로치 === */
+          if(state.advanced){
+            const prof=voiceProfile(),expr=prof!=='clean';                 // lush·jazz 계열은 표현적으로
+            const SECDYN={Intro:0.88,Verse:0.85,PreChorus:0.97,Buildup:1.03,Chorus:1.12,PostChorus:1.10,Bridge:0.82,Outro:0.9};
+            const arch=nb>1?Math.sin(Math.PI*(bi+0.5)/nb):1;              // 섹션 중반 클라이맥스
+            let dyn=(SECDYN[sec.type]??0.96)+(expr?0.16:0.10)*(arch-0.5)*2; // 섹션 감성 + 프레이즈 아치
+            if(bi===nb-1&&si===ns-1)dyn*=0.95;                            // 곡 끝맺음 여리게
+            if(themeOn)dyn=Math.max(dyn,0.96);                            // 테마 구간은 또렷하게
+            opt.dyn=Math.max(0.70,Math.min(1.18,dyn));
+            opt.expr=expr;
+            opt.breath=(expr&&bi%4===0&&bi>0&&!isRub)?0.03:0;             // 4마디 프레이즈 시작에 살짝 호흡(루바토)
+            if(SPACE_COMP[curPerf.comp])opt.space=e>=4?0.12:(e>=3?0.06:0);
+            const changed=cellIdx>0&&ROOTSEQ[cellIdx-1]!=null&&ROOTSEQ[cellIdx-1]!==ch.pc;
+            if(changed&&!isRub&&s-0.5>=0){
+              const prof=voiceProfile();
+              if((prof==='jazz'||prof==='lush')&&e>=2&&pRng()<0.26){opt.approach=true;opt.approachNotes=ch.piano.map(m=>m+1);}
+              else if(ANTIC_COMP[curPerf.comp]&&e>=3&&pRng()<0.30)opt.antic=true;
+            }
+          }
+          pianoRegion(ch,s,d,melE,tracks.piano,bb,barStart,bts,opt);
+          if(PEDAL_COMP[curPerf.comp]||opt.solo)pedSegs.push({t0:s,t1:s+d});   // 코드 셀마다 페달 한 번(하모니 동기)
+          if(!buildLast&&!isRub&&(stg?stg.gt:(!amask||amask.guitar)))guitarRegion(ch,s,d,e,tracks.guitar,bb,barStart,bts);
+          cellIdx++;
+        }
+        j=k;
+      }
+      cur+=M.q;
+    });
+    sview.push({type:sec.type,ko:info.ko,startQ:start,endQ:cur,energy:info.energy,bpm:secTempo(sec)});
+  });
+  let acc=0;sview.forEach(s=>{s.startSec=acc;s.spq=60/s.bpm;acc+=(s.endQ-s.startQ)*s.spq;});
+  /* 빌드업 단계 셈여림: 단계 지정 구간의 노트 세기를 스케일(실제 벨로시티라 MIDI에 실림) */
+  {let q0=0;state.sections.forEach(sec=>{const q1=q0+sec.grid.length*METERS[secMeter(sec)].q;const n=+sec.stage;
+    if(n>=1&&STYPES[sec.type]&&!STYPES[sec.type].build){const v=(stageProfile(Math.min(6,n),state.style)||{}).vel||1;
+      ['piano','bass','guitar','melody','counter'].forEach(k=>tracks[k].forEach(nt=>{if(nt.t>=q0-1e-6&&nt.t<q1-1e-6)nt.vel=Math.max(1,Math.min(127,Math.round(nt.vel*v)));}));
+      tracks.drums.forEach(nt=>{if(nt.t>=q0-1e-6&&nt.t<q1-1e-6)nt.vel=Math.max(1,Math.min(127,Math.round(nt.vel*(1+(v-1)*0.6))));});}
+    q0=q1;});}
+  /* 동일 피치 겹침 정리(범용): 수 ms 내 중복 타건은 약한 쪽 제거, 그 외엔 재타건 직전 클립 → DAW note-off 충돌 방지 */
+  const clipOverlaps=tr=>{const by={};tr.forEach(n=>{(by[n.midi]=by[n.midi]||[]).push(n);});
+    Object.values(by).forEach(ns=>{ns.sort((a,b)=>a.t-b.t);let keep=ns[0];
+      for(let i=1;i<ns.length;i++){const n=ns[i];
+        if(n.t<keep.t+keep.dur-1e-6){
+          if(n.t-keep.t<0.045){if(n.vel<=keep.vel){n.drop=true;continue;}keep.drop=true;keep=n;continue;} // 동시 중복 → 약한 쪽 제거
+          keep.dur=Math.max(0.03,n.t-keep.t-0.012);                                                        // 재타건 직전 클립
+        }
+        keep=n;}});
+    return tr.filter(n=>!n.drop);};
+  ['piano','bass','guitar','melody','counter'].forEach(k=>{tracks[k]=clipOverlaps(tracks[k]);});
+  /* 레가토(싱코페이티드) 페달: 셀 시작에 밟고, 다음 코드 직전에 살짝 떼어 이전 하모니를 비움 */
+  pedSegs.sort((a,b)=>a.t0-b.t0);
+  const PED=[];const GAP=0.02;
+  pedSegs.forEach(({t0,t1})=>{const lift=Math.max(t0+0.01,t1-GAP);PED.push({t:t0,val:127});PED.push({t:lift,val:0});});
+  PED.sort((a,b)=>a.t-b.t||a.val-b.val);
+  tracks.pedal=PED;
+  /* 지속음(드론) 레이어: 조 으뜸음(+5도) 저음. 같은 음은 이어붙여 끊김 없는 지속(명상) */
+  {let dr=36+((keyPc()%12)+12)%12;while(dr<33)dr+=12;while(dr>45)dr-=12;
+   const raw=[];sview.forEach(sv=>{const dur=(sv.endQ-sv.startQ);if(dur<=0)return;
+     raw.push({t:sv.startQ,end:sv.endQ,midi:dr,vel:54});
+     if(state.droneFifth)raw.push({t:sv.startQ,end:sv.endQ,midi:dr+7,vel:44});});
+   const byM={};raw.forEach(n=>{(byM[n.midi]=byM[n.midi]||[]).push(n);});
+   Object.values(byM).forEach(arr=>{arr.sort((a,b)=>a.t-b.t);let cur=null;
+     arr.forEach(n=>{if(cur&&Math.abs(n.t-cur.end)<1e-6){cur.end=n.end;}else{if(cur)tracks.drone.push({t:cur.t,dur:cur.end-cur.t,midi:cur.midi,vel:cur.vel});cur={...n};}});
+     if(cur)tracks.drone.push({t:cur.t,dur:cur.end-cur.t,midi:cur.midi,vel:cur.vel});});
+   tracks.drone.sort((a,b)=>a.t-b.t||a.midi-b.midi);}
+  MODEL={tracks,sections:sview,totalQ:cur,totalSec:acc,bpm:(+$('bpm').value||92)};return MODEL;
+}
+function qToSec(q){const S=MODEL.sections;if(!S.length)return q*(60/MODEL.bpm);
+  for(const s of S){if(q<=s.endQ+1e-6)return s.startSec+Math.max(0,q-s.startQ)*s.spq;}
+  const L=S[S.length-1];return L.startSec+(q-L.startQ)*L.spq;}
+function secToQ(t){const S=MODEL.sections;if(!S.length)return t*(MODEL.bpm/60);
+  for(const s of S){const seg=(s.endQ-s.startQ)*s.spq;if(t<=s.startSec+seg+1e-6)return s.startQ+Math.max(0,t-s.startSec)/s.spq;}
+  const L=S[S.length-1];return L.endQ+(t-(L.startSec+(L.endQ-L.startQ)*L.spq))/L.spq;}
+function drumBar(gid,meter,e,crash,buildLast,fill,b0,out){
+  const G=GROOVES[gid]||GROOVES['8beat'];if(G.rubato)return;
+  const M=METERS[meter],sixteenths=Math.round(M.q*4),s16=0.25;
+  if(G.bare){ // 사극/오리엔탈: 깊은 타악(둥-둥)만, 하이햇 없음
+    if(e<=1){out.push({t:b0,type:'kick',vel:78});return;}
+    G.kick.forEach(p=>{if(p<sixteenths)out.push({t:b0+p*s16,type:'kick',vel:e>=4?96:82});});
+    if(e>=3)out.push({t:b0+Math.round(sixteenths/2)*s16,type:'tom1',vel:52}); // 약한 중간 타 = 장구 채편(높은 북), 드럼킷 스네어 아님
+    if(e>=4&&!buildLast)out.push({t:b0+(sixteenths-2)*s16,type:'tom2',vel:60});
+    return;}
+  if(G.orch){ /* 오케 타악: 그란카사 강박 + 탐(타이코/팀파니) 펄스 + 스네어(마칭/히트) + 심벌·탐탐. 하이햇 없음 — 백비트 킷이 아니라 오케 문법 */
+    if(crash)out.push({t:b0,type:'crash',vel:96});
+    if(buildLast){for(let s2=0;s2<sixteenths;s2++)out.push({t:b0+s2*s16,type:'snare',vel:36+Math.floor(s2/sixteenths*76)}); // 롤 크레셴도(팀파니/스네어)
+      out.push({t:b0,type:'kick',vel:104});return;}
+    if(e<=1){out.push({t:b0,type:'kick',vel:72});return;}                                  // 여백: 그란카사 한 점
+    out.push({t:b0,type:'kick',vel:e>=4?102:88});                                          // 강박 그란카사
+    if(e>=3)out.push({t:b0+Math.round(sixteenths/2)*s16,type:'kick',vel:80});              // 하프 지점 보강
+    if(e>=3){const step=e>=4?2:4;                                                          // 탐 펄스: 4분(3) → 8분(4+)
+      for(let s2=0;s2<sixteenths;s2+=step){if(s2%8===0)continue;
+        out.push({t:b0+s2*s16,type:(s2%4===0)?'tom1':'tom2',vel:e>=5?78:64});}}
+    if(G.march&&e>=4){out.push({t:b0+4*s16,type:'snare',vel:70});out.push({t:b0+12*s16,type:'snare',vel:74}); // 마칭 스네어 2·4
+      if(e>=5)[6,14].forEach(p2=>out.push({t:b0+p2*s16,type:'snare',vel:44}));}
+    else if(e>=5)out.push({t:b0+12*s16,type:'snare',vel:72});                              // epic: 4박 큰 스네어 히트
+    if(fill&&e>=4)[sixteenths-3,sixteenths-2,sixteenths-1].forEach((p2,i2)=>out.push({t:b0+p2*s16,type:['tom3','tom2','tom1'][i2],vel:66+i2*6})); // 탐 필
+    return;}
+  if(buildLast){for(let s=0;s<sixteenths;s++)out.push({t:b0+s*s16,type:'snare',vel:38+Math.floor(s/sixteenths*72)});out.push({t:b0,type:'kick',vel:100});return;}
+  const ev=[];if(crash)ev.push({t:b0,type:'crash',vel:92});
+  const place=(pos,type,vel)=>pos.forEach(p=>{for(let o=0;p+o<sixteenths;o+=16)ev.push({t:b0+(p+o)*s16,type,vel});});
+  place(e<=1?G.kick.slice(0,1):G.kick,'kick',e>=4?106:96);
+  if(e>=4)ev.push({t:b0+(sixteenths-2)*s16,type:'kick',vel:78});
+  if(e>=2)place(G.snare,'snare',96);if(e>=3&&G.ghost)place(G.ghost,'snare',40);
+  const res=(e<=2)?8:G.hatRes,step=res===16?1:2;
+  const swEff=Math.max(state.swing,G.feel==='swing'?0.6:0);
+  for(let i=0;i<sixteenths;i+=step){let t=b0+i*s16;if(swEff>0&&(i%(step*2))===step)t+=swEff*0.165;ev.push({t,type:'hat',vel:i%4===0?72:50});}
+  let res2=ev;
+  if(fill){const fb=e>=4?2:1,fs=M.q-fb;res2=ev.filter(x=>(x.t-b0)<fs-1e-6);
+    const hits=Math.round(fb*(e>=4?4:2)),seq=['snare','tom1','tom2','tom3'],stepQ=fb/hits;
+    for(let k=0;k<hits;k++)res2.push({t:b0+fs+k*stepQ,type:seq[k%4],vel:72+Math.floor(k/hits*46)});}
+  res2.forEach(x=>out.push(x));
+}
+/* 베이스 — 스타일 주법별, 모든 패턴을 마디 첫박 그리드(bs)에 고정 */
+function bassRegion(ch,s,d,e,out,nextRoot,bb,bs,bts){const r=ch.bass,fifth=r+7,oct=r+12,BB=bb||4;bts=bts||[0,1,2,3];
+  const pcs=[...new Set(ch.piano.map(p=>((p%12)+12)%12))];
+  const bn=pc=>{let m=((pc%12)+12)%12;while(m<33)m+=12;while(m>47)m-=12;return m;};
+  const within=tt=>tt>=s-1e-6&&tt<s+d-1e-6;            // 코드 셀 구간 안에서만 발음
+  const put=(o,midi,vel,dur)=>{const tt=bs+o;if(within(tt))out.push({t:tt+swOff(o,0.5),dur:Math.min(dur,s+d-tt),midi,vel});};
+  const pat=(arr,dur)=>arr.forEach(([o,n,v])=>{if(o<BB)put(o,n,v,dur);});
+  switch(curPerf.bass){
+    case 'sustain':
+      out.push({t:s,dur:d*0.98,midi:r,vel:e<=1?52:58});
+      if(e>=4&&d>2)put(BB-0.5,fifth,54,0.5);return;
+    case 'root5':
+      bts.forEach((o,i)=>put(o,i%2?fifth:r,e>=4?80:70,1.0));return;
+    case 'eighths':
+      if(e>=4){for(let o=0;o<BB-1e-6;o+=0.5){const onAnd=Math.round(o/0.5)%2===1;put(o,(e>=5&&onAnd)?oct:r,84,0.45);}}
+      else bts.forEach(o=>put(o,r,74,1.0));return;
+    case 'octave':
+      if(e>=4){for(let o=0;o<BB-1e-6;o+=0.5)put(o,(Math.round(o/0.5)%2)?oct:r,82,0.42);}
+      else bts.forEach((o,i)=>put(o,i%2?oct:r,72,1.0));return;
+    case 'synco':
+      pat(e>=4?[[0,r,86],[1.5,r,76],[2,fifth,80],[2.5,r,72],[3.5,oct,82]]:[[0,r,78],[2,r,76],[3.5,r,72]],0.42);return;
+    case 'funk16':
+      pat(e>=4?[[0,r,96],[0.5,r,58],[1.5,oct,84],[1.75,r,62],[2,r,90],[2.75,oct,78],[3.25,r,68],[3.5,r,86]]
+              :[[0,r,90],[1.5,r,78],[2,r,86],[3.5,r,76]],0.16);return;
+    case 'walk':{const thirdPc=pcs.find(p=>[3,4].includes(((p-ch.pc+12)%12))),fifthPc=(ch.pc+7)%12,nr=(nextRoot!=null)?nextRoot:ch.pc;
+      const tones=[ch.pc,thirdPc!=null?thirdPc:fifthPc,fifthPc,((nr+11)%12)];
+      bts.forEach((o,i)=>{const last=i>=bts.length-1;const pc=last?((nr+11)%12):tones[i%4];put(o,bn(pc),i===0?82:72,1.0);});return;}
+    case 'drone':                                        // 사극/오리엔탈: 근음+완전5도 드론(페달)
+      out.push({t:s,dur:d*0.99,midi:r,vel:54});
+      out.push({t:s,dur:d*0.99,midi:r+7,vel:38});
+      if(e>=4&&d>2)put(BB-1,r+12,44,1);
+      return;
+    default:
+      bts.forEach(o=>put(o,r,70,1.0));
+  }
+}
+/* 피아노 컴핑 — 스타일별, 마디 첫박 그리드(bs)에 고정 */
+function pianoRegion(ch,s,d,e,out,bb,bs,bts,opt){const ps=ch.piano,top=ps[ps.length-1],BB=bb||4;bts=bts||[0,1,2,3];
+  const O=opt||{},dyn=O.dyn||1,spaceP=O.space||0,EXPR=O.expr,BR=O.breath||0;
+  const within=tt=>tt>=s-1e-6&&tt<s+d-1e-6;
+  const rootLo=()=>{let m=48+(((ch.pc||0)%12)+12)%12;while(m>55)m-=12;while(m<43)m+=12;return m;}; // 왼손 근음(베이스 위 음역)
+  const HUM=state.humanize, N=ps.length;
+  const accent=o=>o<1e-6?4:(Math.abs(o-Math.round(o))<1e-6?1:-2);   // 다운비트 또렷, 엇박 살짝 죽임
+  const offbeat=o=>o>0.01&&Math.abs(o-Math.round(o))>1e-6;          // 공간 비우기 대상(엇박)
+  const space=o=>spaceP>0&&offbeat(o)&&pRng()<spaceP;              // 가끔 엇박을 쉬어 숨 줌
+  /* 임의 시각(셀 시작 전 포함)에 보이싱을 굴려서 발음 — 앤티시페이션·어프로치용 */
+  const emitAt=(t0,notes,vel,dur)=>{let rstep=HUM?(0.006+pRng()*0.012):0;
+    notes.forEach((p,i)=>{let v=vel;if(HUM){v+=(i===notes.length-1?6:(i===0?2:-3))+pj(4);}
+      out.push({t:Math.max(0,t0+i*rstep),dur,midi:p,vel:vClamp(v*dyn)});});};
+  /* 코드: 저→고로 굴리고(표현적이면 더 크게 펼침) 탑 보이스를 살림 + 프레이즈 호흡 */
+  const chord=(o,vel,dur)=>{const tt=bs+o;if(!within(tt)||space(o))return;
+    let base=tt+swOff(o,0.5);if(BR&&o<1e-6)base+=BR;const dd=Math.min(dur,s+d-tt);
+    let rstep=0;if(HUM){rstep=0.006+pRng()*0.012;if(EXPR){rstep*=1.7;if(pRng()<0.3)rstep*=1.7;}else if(pRng()<0.12)rstep*=2.2;}
+    const aV=HUM?accent(o):0;
+    ps.forEach((p,i)=>{let v=vel+aV;if(HUM){v+=(i===N-1?6:(i===0?2:-3));v+=pj(4);}      // 탑+6 / 베이스+2 / 내성-3
+      const t=HUM?Math.max(s,base+i*rstep+pj(0.006)):base;
+      const dv=(i===N-1||i===0)?dd:dd*0.88;                                              // 탑·베이스는 라인처럼 지속, 내성은 물러남
+      out.push({t,dur:dv,midi:p,vel:vClamp((HUM?v:vel)*dyn)});});};
+  /* 단음: 미세 타이밍·벨로시티 흔들림 */
+  const note=(o,midi,vel,dur)=>{const tt=bs+o;if(!within(tt)||space(o))return;const dd=Math.min(dur,s+d-tt);
+    let v=vel,t=tt+swOff(o,0.5)+((BR&&o<1e-6)?BR:0);if(HUM){v+=accent(o)*0.6+pj(5);t=Math.max(s,t+pj(0.011));}
+    out.push({t,dur:dd,midi,vel:vClamp((HUM?v:vel)*dyn)});};
+  const pat=(arr,dur)=>arr.forEach(([o,v])=>{if(o<BB)chord(o,v,dur);});
+  /* 코드 바뀌기 직전 프리비트: 어프로치(반음 위에서 해결) 또는 앤티시페이션(당겨치고 타이) */
+  if(O.approach&&O.approachNotes&&s-0.33>=0)emitAt(s-0.33,O.approachNotes,42,0.26);
+  if(O.antic&&s-0.5>=0)emitAt(s-0.5,ps,58,0.46);                     // 푸시는 다운비트 직전에 끝나야 동일음 겹침 없음
+  if(O.solo){                                                        // ===== 솔로 피아노: 화려한 양손 반주 =====
+    const step=e>=4?0.25:0.5;                                       // 코러스는 16분(더 화려), 그 외 8분 흐름
+    let lo=36+(((ch.pc||0)%12)+12)%12;while(lo<33)lo+=12;while(lo>47)lo-=12; // 저음 근음(C2~B2)
+    bts.forEach((o,i)=>{if(i===0){note(o,lo,62,1.9);note(o,lo+12,50,1.8);}    // 다운비트: 근음 옥타브(다음 근음 전에 끝)
+      else note(o,(i%2?lo+7:lo),44,0.95);});                         // 그 외: 5도/근음 롤링(겹침 없이)
+    const up=[...new Set(ps.concat(ps.map(p=>p+12)))].sort((a,b)=>a-b).filter(p=>p<=93&&p>lo+12);
+    const seq=up.concat(up.slice(1,-1).reverse());                   // 상행→하행 물결 아르페지오
+    let k=0;for(let o=0;o<BB-1e-6;o+=step){note(o,seq[k%seq.length],o<1e-6?58:46,step*1.5);k++;}
+    if(O.fill&&within(bs+(BB-1))){                                   // 화려한 프레이즈 런(상행 펜타토닉 16분)
+      const sc=themeScale(),cnt=e>=4?7:6;
+      for(let r=0;r<cnt;r++){const o=(BB-1)+r*0.16;if(o>=BB-1e-6)break;
+        let m=72+keyPc()+sc[r%sc.length]+12*Math.floor(r/sc.length);while(m<74)m+=12;while(m>92)m-=12;
+        note(o,m,52,0.18);}}
+    return;
+  }
+  switch(curPerf.comp){
+    case 'broken':{                                       // 발라드: 왼손 베이스(felt 박) + 오른손 흐르는 8분 분산
+      const lo=rootLo(),up=ps.concat([ps[ps.length-1]+12]);let k=0;
+      for(let o=0;o<BB-1e-6;o+=0.5){note(o,up[k%up.length],o<1e-6?62:46,1.7);k++;}
+      bts.forEach(o=>note(o,lo,52,1.5));
+      if(e>=4)note(BB-0.5,up[up.length-1],50,0.5);return;}
+    case 'pad':{
+      ps.forEach(p=>out.push({t:s,dur:d*0.98,midi:p,vel:50}));
+      if(e>=3){const hi=[ps[ps.length-2]+12,ps[ps.length-1]+12,ps[ps.length-1]+19];let k=0;  // 위로 반짝이는 셔머
+        bts.forEach(o=>{note(o,hi[k%hi.length],36,1.4);k++;});}
+      return;}
+    case 'stab':
+      if(e>=4)chord(0,56,0.2);
+      pat(e>=4?[[0.5,66],[1.5,70],[2.5,64],[3.5,70]]:[[1.5,62],[3.5,66]],0.18);
+      if(e>=4){note(1.5,top+12,60,0.18);note(3.5,top+12,60,0.18);}   // 상단 반짝
+      return;
+    case 'syncop':
+      pat(e>=4?[[0,62],[1.5,58],[2.5,60],[3.5,56]]:[[0,60],[2.5,56]],0.55);
+      if(e>=4)note(2.5,top+12,52,0.5);
+      return;
+    case 'gospel':{
+      if(e>=4){for(let o=0;o<BB-1e-6;o+=0.5){const strong=Math.round(o/0.5)%2===0;chord(o,strong?64:50,0.45);}
+        const lo=rootLo();bts.forEach((o,i)=>{note(o,lo,58,0.95);if(i%2===0)note(o,top+12,54,1.2);});}
+      else bts.forEach(o=>chord(o,60,0.9));return;}
+    case 'arp':{const order=ps.concat(ps.slice(0,-1).reverse());let i=0;
+      if(e<=2){bts.forEach(o=>{note(o,order[i%order.length],i%2?48:58,1.1);i++;});}
+      else{for(let o=0;o<BB-1e-6;o+=0.5){note(o,order[i%order.length],i%2?48:58,0.65);i++;}}
+      return;}
+    case 'oriental':{                                    // 사극: 개방 5도/펜타토닉 분산(가야금·고토 느낌)
+      const rt=ch.pc;let voi=[60+rt,67+rt,72+rt,74+rt,79+rt].map(m=>{while(m>83)m-=12;while(m<55)m+=12;return m;});
+      voi=[...new Set(voi)].sort((a,b)=>a-b);const order=voi.concat(voi.slice(0,-1).reverse());let i=0;
+      for(let o=0;o<BB-1e-6;o+=0.5){note(o,order[i%order.length],i%2?44:56,1.2);i++;}
+      return;}
+    default:{ // block — 화려하게: 베이스 옥타브 + 엇박 상단 반짝
+      const lo=rootLo();
+      if(e<=2){ps.forEach(p=>out.push({t:s,dur:d*0.95,midi:p,vel:55}));note(0,lo,50,d*0.95);if(e===2&&bts.length>1)note(bts[Math.floor(bts.length/2)],top+12,44,1.2);}
+      else if(e===3){bts.forEach((o,i)=>{if(i%2===0)chord(o,58,1.6);note(o,lo,54,0.95);});for(let o=0.5;o<BB-1e-6;o+=2)note(o,top+12,44,0.4);}
+      else{bts.forEach(o=>{chord(o,60,0.92);note(o,lo,56,0.92);});for(let o=0.5;o<BB-1e-6;o+=1)note(o,top+12,46,0.4);}
+    }
+  }
+}
+/* 시드 랜덤 멜로디 — 리듬 셀 + 코드톤/패싱톤, 매번 다양하게 */
+function mul32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+let melRng=Math.random,melLast=null;
+let melRhyMotif=null,melBarSeen=-1,melBarCount=0,melLeapDir=0; // 리듬 모티브(그루브 반복)·프레이즈·도약해결 상태
+const mpick=a=>a[Math.floor(melRng()*a.length)];
+const SCALES={major:MAJ_OFF,aeolian:[0,2,3,5,7,8,10],dorian:[0,2,3,5,7,9,10],penta:[0,3,5,7,10],pentamaj:[0,2,4,7,9]};
+/* 에너지별 음 길이 풀(박) — 낮을수록 길게 끌어 노래하듯, 높을수록 더 움직임 */
+const MELLEN={low:[4,3,2,2,3,1.5],mid:[2,2,1.5,1,2,1],high:[1,1,0.5,1,2,1]};
+/* ===== 인트로/아웃트로 메인 테마(모티브) ===== 펜타토닉 훅을 시드로 한 번 만들어 양 끝에서 회상(북엔드) */
+function themeScale(){return (curPerf.scale==='penta'||['aeolian','dorian'].includes(curPerf.scale))?[0,3,5,7,10]:[0,2,4,7,9];}
+function buildMotif(beatsPerBar){                          // 2마디 펜타토닉 모티브(시드 고정 → 인트로==아웃트로)
+  const rng=mul32(((state.melSeed^0x9E3779B9)>>>0)||1),span=2*beatsPerBar;
+  const lenPool=beatsPerBar>=4?[1,1,0.5,0.5,2,1,1.5]:[1,1,0.5,1,1.5];
+  const notes=[];let t=0,idx=2;
+  while(span-t>0.24){let L=lenPool[Math.floor(rng()*lenPool.length)];if(L>span-t)L=span-t;if(span-t-L<0.24)L=span-t;
+    const strong=Math.abs(t%beatsPerBar)<1e-6;
+    if(notes.length===0)idx=2;
+    else if(strong||L>=1.5){const st=[0,2,4];idx=st.reduce((p,c)=>Math.abs(c-idx)<Math.abs(p-idx)?c:p,st[0]);if(rng()<0.3)idx+=rng()<0.5?1:-1;}
+    else idx+=rng()<0.5?1:-1;
+    idx=Math.max(0,Math.min(6,idx));notes.push({t,dur:L,idx});t+=L;}
+  if(notes.length){const li=notes.length-1,st=[0,2,4,5];notes[li].idx=st.reduce((p,c)=>Math.abs(c-notes[li].idx)<Math.abs(p-notes[li].idx)?c:p,st[0]);}
+  return notes;
+}
+function pentaPitch(idx,scaleArr){const L=scaleArr.length,oct=Math.floor(idx/L),within=((idx%L)+L)%L;
+  let m=60+keyPc()+scaleArr[within]+12*oct;while(m<67)m+=12;while(m>86)m-=12;return m;}
+function renderTheme(motif,startQ,beatsPerBar,nbars,scaleArr){ // 섹션 길이만큼 모티브를 타일링
+  const out=[],secBeats=nbars*beatsPerBar,span=2*beatsPerBar;
+  for(let rep=0;rep*span<secBeats-0.1;rep++)motif.forEach(n=>{const t=startQ+rep*span+n.t;
+    if(t<startQ+secBeats-0.1){const dur=Math.max(0.2,Math.min(n.dur,startQ+secBeats-t)*0.98);
+      out.push({t,dur,midi:pentaPitch(n.idx,scaleArr),vel:74,theme:true});}});
+  return out;
+}
+const nearestTheme=(tn,s)=>{let best=null,bd=1e9;tn.forEach(n=>{const dd=Math.abs(n.t-s);if(n.t<=s+0.5&&dd<bd){bd=dd;best=n.midi;}});return best;};
+/* 분위기(atmosphere) 패드 — 인트로/아웃트로: 선율 없이 지속 화음 + 필터/음량 스윕(인트로 열림·빌드 / 아웃트로 닫힘·페이드) */
+function atmosRegion(ch,s,d,tracks,isIntro,frac){
+  const ps=ch.piano;
+  const bright=isIntro?(0.30+0.70*frac):(1-0.72*frac);            // 인트로 어둡→밝음 / 아웃트로 밝음→어둡
+  const baseVel=isIntro?Math.round(28+22*frac):Math.round(52-26*frac); // 인트로 빌드 / 아웃트로 페이드
+  ps.forEach((p,i)=>tracks.piano.push({t:s+i*0.02,dur:d*0.99,midi:p,vel:Math.max(16,baseVel-(i%2?4:0)),bright,atmos:1})); // 부드럽게 굴려 들어오는 지속 패드
+  let lo=ps[0]-12;while(lo<31)lo+=12;while(lo>43)lo-=12;
+  tracks.bass.push({t:s,dur:d*0.99,midi:lo,vel:Math.max(18,baseVel-6),bright,atmos:1});                 // 소프트 저음 근음
+}
+/* 대선율(카운터라인): 멜로디 쉼표를 코드톤으로 메우는 콜앤리스폰스 라인. 저역(보컬 밑) · 코드톤만 써 항상 어울림 */
+function counterRegion(ch,s,d,e,out,melNotes,bb,bs){
+  const low=pc=>{let m=((pc%12)+12)%12+48;while(m<48)m+=12;while(m>64)m-=12;return m;};   // C3~ 대선율 레지스터(보컬 밑, 피치클래스 보존)
+  let ct=[...new Set(ch.piano.map(p=>((p%12)+12)%12))].map(low).sort((a,b)=>a-b);
+  if(!ct.length)return;
+  const busy=melNotes.map(n=>[n.t,n.t+Math.min(n.dur,1.25)]).sort((a,b)=>a[0]-b[0]);   // 롱톤(≥1.25박) 꼬리 밑에선 답가 허용 — 보컬이 끌 때 카운터가 움직임
+  let gaps=[],cursor=s;const cellEnd=s+d;
+  busy.forEach(([a,b])=>{if(a-cursor>0.35)gaps.push([cursor,a]);cursor=Math.max(cursor,b);});
+  if(cellEnd-cursor>0.35)gaps.push([cursor,cellEnd]);
+  if(!melNotes.length)gaps=[[s,cellEnd]];                       // 멜로디 없으면 셀 전체를 리프처럼
+  const step=e>=4?0.5:1;                                        // 에너지 높으면 8분, 아니면 4분
+  let ci=Math.floor(melRng()*ct.length),dir=melRng()<0.5?1:-1;  // 코드톤 위/아래로 걷기
+  gaps.forEach(([a,b])=>{
+    const span=b-a;if(span<0.4)return;
+    let t=a,cnt=0,maxN=span>=2?(e>=4?4:2):(span>=1?2:1);         // 갭 길이에 비례한 음 수(과밀 방지)
+    while(b-t>=step-1e-6&&cnt<maxN){
+      let midi=ct[((ci%ct.length)+ct.length)%ct.length];ci+=dir;if(ci<0||ci>=ct.length){dir=-dir;ci+=2*dir;}
+      let tt=t;if(state.humanize)tt=Math.max(a,t+(melRng()*2-1)*0.012);
+      const vel=Math.max(44,Math.round(56-cnt*2+(melRng()*2-1)*3));  // 멜로디보다 여리게, 프레이즈 감쇠
+      out.push({t:tt,dur:Math.max(0.2,Math.min(step*0.92,b-t)),midi,vel});
+      t+=step;cnt++;
+    }
+    if(cnt===0&&span>=0.4){out.push({t:a,dur:Math.min(span*0.9,1),midi:ct[((ci%ct.length)+ct.length)%ct.length],vel:52});} // 짧은 갭도 한 음
+  });
+}
+/* ===== 빌드업 6단계 =====
+   조사 근거: 빌드업 = ①악기 레이어 점진 추가 ②드럼 밀도 상승 ③셈여림 증가 ④필·크래시로 전환 예고.
+   e=코어 에너지, dr=드럼(0/light/full), ba=베이스, gt=기타, ct=대선율, fill(0/1=4마디/2=2마디), crash=구간 첫 마디 크래시, vel=셈여림 배율, mel=멜로디 밀도 */
+const STAGES={
+ 1:{ko:'1 여백',      e:1,dr:0,      ba:0,gt:0,ct:0,fill:0,crash:false,vel:0.80,mel:1},
+ 2:{ko:'2 기반',      e:2,dr:0,      ba:1,gt:0,ct:0,fill:0,crash:false,vel:0.87,mel:2},
+ 3:{ko:'3 맥박',      e:2,dr:'light',ba:1,gt:0,ct:0,fill:0,crash:false,vel:0.93,mel:2},
+ 4:{ko:'4 그루브',    e:3,dr:'full', ba:1,gt:1,ct:1,fill:1,crash:false,vel:1.00,mel:3},
+ 5:{ko:'5 풀 밴드',   e:4,dr:'full', ba:1,gt:1,ct:1,fill:1,crash:true, vel:1.07,mel:4},
+ 6:{ko:'6 클라이맥스',e:5,dr:'full', ba:1,gt:1,ct:1,fill:2,crash:true, vel:1.14,mel:5},
+};
+/* 장르별 레이어 진입 순서 — 장르마다 '무엇이 뼈대인가'가 달라 진입 순서가 다름 */
+function stageProfile(n,styleId){
+  const base=STAGES[n];if(!base)return null;const s=Object.assign({},base);
+  const cat=k=>CAT[k]&&CAT[k].includes(styleId);
+  if(ROCK.includes(styleId)){                                   // 록: 기타가 정체성 — 2단계부터, 드럼도 이르게
+    if(n>=2){s.gt=1;s.dr=n===2?'light':'full';}
+  }else if(styleId==='funk'||['motown','gospel','neosoul'].includes(styleId)){ // 그루브 계열: 리듬섹션이 뼈대 — 드럼·기타 일찍
+    if(n>=2)s.dr='light';if(n>=3){s.dr='full';s.gt=1;}
+  }else if(cat('folk')){                                        // 포크: 어쿠스틱 스트럼이 기반 — 기타 2단계
+    if(n>=2)s.gt=1;
+  }else if(cat('ballad')){                                      // 발라드: 피아노·페달이 끌고 가고 드럼은 늦게
+    if(n===3)s.dr=0;if(n===4)s.dr='light';
+  }else if(cat('oriental')){                                    // 동양: 타악 최소 — 5단계부터 라이트
+    s.gt=0;if(n<=4)s.dr=0;else if(n===5)s.dr='light';
+  }
+  return s;
+}
+/* 빌드업 아치: 섹션 흐름에 단계를 자동 배치(가이드 레시피가 사용) */
+function buildupArc(kind){
+  const occ={},n=state.sections.length;
+  state.sections.forEach((sec,i)=>{const t=sec.type;const o=(occ[t]=occ[t]||0);occ[t]++;
+    let st=0;
+    if(kind==='rise')st=Math.max(1,Math.min(6,1+Math.round(i/Math.max(1,n-1)*5)));                 // 계단식 상승(워십·슈게이즈)
+    else if(kind==='calm')st=(t==='Chorus'||t==='PostChorus')?3:(t==='Intro'||t==='Outro')?1:2;    // 낮게 유지(명상·앰비언트)
+    else if(kind==='drop')st=(t==='Verse')?2:(t==='PreChorus')?3:(t==='Chorus'||t==='PostChorus')?Math.min(6,5+o):(t==='Bridge')?2:(t==='Intro')?1:(t==='Outro')?2:0; // 비움→폭발(드롭)
+    else if(kind==='frontload')st=(t==='Intro')?4:(t==='Chorus')?Math.min(6,5+(o>=2?1:0)):(t==='PostChorus')?6:(t==='Verse')?(o===0?2:3):(t==='PreChorus')?4:(t==='Bridge')?1:(t==='Outro')?2:0; // 숏폼형: 훅 먼저 높게·포스트코러스 최고점·브릿지 스트립
+    else st=(t==='Intro')?1:(t==='Verse')?Math.min(4,2+o):(t==='PreChorus')?Math.min(5,3+o):(t==='Chorus')?Math.min(6,4+o):(t==='PostChorus')?Math.min(6,5+o):(t==='Bridge')?2:(t==='Outro')?1:0; // wave: 회차마다 한 단계 위, 포스트코러스는 코러스+1(팝 기본)
+    if(t==='Outro')st=Math.min(st||1,2);
+    if(t==='Buildup')st=0;                                       // 빌드업 섹션은 자체 램프 유지
+    sec.stage=st;});
+}
+/* 편곡 다이내믹: 저에너지 섹션에서 악기를 덜어내 여백을 주고 코러스에서 채워 대비(결정론적) */
+function arrMask(sec,idx){
+  const m={bass:true,guitar:true,drums:true};
+  if(sec.type==='Intro'||sec.type==='Outro')return m;      // 양 끝은 분위기 로직이 처리
+  let occ=0;for(let i=0;i<idx;i++)if(state.sections[i].type===sec.type)occ++;
+  const rock=ROCK.includes(state.style);
+  if(sec.type==='Verse'){
+    if(occ===0){m.drums=false;m.bass=false;m.guitar=rock;}  // 1절: 건반 중심(록이면 기타 유지) — 여백
+    else m.drums='light';                                   // 2절+: 드럼 가볍게 진입
+  }else if(sec.type==='PreChorus')m.drums='light';          // 프리코러스: 빌드 준비
+  else if(sec.type==='Bridge')m.drums=(occ===0?false:'light'); // 첫 브릿지 브레이크다운
+  return m;                                                 // 코러스/포스트코러스/빌드업: 풀밴드로 터짐
+}
+/* ===== 훅/모티프 엔진 =====
+   훅 = 좋은 멜로디가 아니라 '정확한 반복': 2마디 모티프를 시드에서 1회 생성 →
+   코러스 안 A–A–B–A(cad) 배치(B=리프트+최고음 1회), 모든 코러스 회차에 동일 재등장.
+   벌스=저역 대비 모티프 반복 · 프리코러스=상승 시퀀스 · 포스트코러스=챈트 반복.
+   강박·긴 음은 코드톤 스냅(가창성), 렌더에 rng 미사용 → 회차 간 동일성 보장 */
+let MOTIFS=null;
+function buildMotifs(){
+  const r=melRng,pick=a=>a[Math.floor(r()*a.length)];
+  const rock=ROCK.includes(state.style),funkish=['funk','motown','neosoul','gospel'].includes(state.style);
+  const RH={ // 2마디 리듬(박,길이) — 훅 정체성의 절반은 리듬
+    drive:[[0,.5],[0.5,.5],[1,.5],[1.5,.5],[2,1],[3,.5],[3.5,.5],[4,.5],[4.5,.5],[5,1],[6,2]],
+    sync:[[0,.75],[0.75,.75],[1.5,.5],[2,1],[3.5,.5],[4,.75],[4.75,.75],[5.5,.5],[6,1.5]],
+    long:[[0,1],[1,.5],[1.5,.5],[2,2],[4,1],[5,.5],[5.5,.5],[6,2]],
+    anthem:[[0,1.5],[1.5,.5],[2,2],[4,1.5],[5.5,.5],[6,2]],
+    bounce:[[0,.5],[0.75,.25],[1,.5],[2,.5],[2.75,.25],[3,.5],[3.5,.5],[4,.5],[4.75,.25],[5,.5],[6,1.5]],
+    ballad8:[[0,1],[1,1],[2,1],[3,.5],[3.5,.5],[4,1],[5,1],[6,1.5]],
+    chant:[[0,.5],[0.5,.5],[1,1],[2,.5],[2.5,.5],[3,1],[4,.5],[4.5,.5],[5,1],[6,2]],
+  };
+  const balladish=['ballad','jballad','worship','neosoul','animeost'].includes(state.style);
+  const gospelish=['gospel','worship','motown'].includes(state.style);
+  const rhythm=rock?pick([RH.drive,RH.anthem]):funkish?pick([RH.sync,RH.bounce]):
+    balladish?pick([RH.long,RH.ballad8,RH.anthem]):gospelish?pick([RH.chant,RH.sync]):
+    state.style==='kpop'?pick([RH.bounce,RH.sync,RH.drive]):state.style==='epic'?pick([RH.anthem,RH.long]):pick([RH.sync,RH.long,RH.drive,RH.bounce,RH.chant]);
+  const mkContour=n=>{let d=pick([0,1,2]);const c=[d];let leap=false;   // 순차 위주 + 도약 1회
+    for(let i=1;i<n;i++){let st;const x=r();
+      if(!leap&&x<0.14){st=r()<0.5?3:-3;leap=true;}else if(x<0.55)st=1;else if(x<0.85)st=-1;else st=0;
+      d=Math.max(-1,Math.min(5,d+st));c.push(d);}return c;};
+  const cho={rh:rhythm,ct:mkContour(rhythm.length)};
+  const vpool=[RH.long,RH.sync,RH.ballad8,RH.chant].filter(x=>x!==rhythm);   // 벌스 대비: 코러스와 다른 리듬 보장
+  const vr=pick(vpool);
+  const ver={rh:vr,ct:mkContour(vr.length).map(x=>Math.max(-2,Math.min(3,x-1)))};
+  const pre={rh:[[0,1],[1,.5],[1.5,.5],[2,1.5]],ct:[0,1,2,3]};
+  const post={rh:[[0,.5],[0.75,.75],[2,.5],[3,1]],ct:[3,3,2,1]};
+  return {cho,ver,pre,post};
+}
+function motifScale(){
+  const km=keyPc();let tc=0,mc=0;
+  state.sections.forEach(sx=>sx.grid.forEach(b=>b.forEach(sym=>{const c=sym&&chordFromSym(sym);if(c&&c.pc===km){tc++;if(/^(min|dim)/.test(c.q))mc++;}})));
+  const min=tc>0&&mc/tc>=0.5,penta=state.style==='saguk';
+  return {km,pcs:penta?[0,3,5,7,10]:min?[0,2,3,5,7,8,10]:[0,2,4,5,7,9,11]};
+}
+function renderMotifSection(sec,startQ,barQ){
+  if(!MOTIFS||!['Verse','PreChorus','Chorus','PostChorus'].includes(sec.type))return null;
+  const {km,pcs}=motifScale(),type=sec.type;
+  const anchor=type==='Verse'?72:type==='PreChorus'?75:type==='PostChorus'?78:77;   // 벌스 저역·코러스 고역 대비
+  let lift=0;                                                            // 파이널 리프트: 마지막 코러스 훅 +1도
+  if(type==='Chorus'){const chs=state.sections.filter(x=>x.type==='Chorus');
+    if(chs.length>1&&chs[chs.length-1]===sec)lift=1;}
+  const lo=anchor-6,hi=anchor+8+(lift?2:0),L=pcs.length;
+  const base=d=>km+pcs[((d%L)+L)%L]+12*Math.floor(d/L)+60;
+  const oct=12*Math.round((anchor-base(1))/12);                       // 유닛 공통 옥타브: 음표별 랩핑 금지 → 상승·도약 윤곽 보존
+  const degMidi=d=>{let m=base(d)+oct;if(m>hi+4)m-=12;if(m<lo-4)m+=12;return m;};
+  const cells=[];{let t=startQ;sec.grid.forEach(bar=>{const w=barQ/bar.length;bar.forEach(sym=>{cells.push({t,d:w,c:chordFromSym(sym)});t+=w;});});}
+  const secEnd=startQ+sec.grid.length*barQ;
+  const chordAt=q=>{for(const x of cells)if(q>=x.t-1e-6&&q<x.t+x.d-1e-6)return x.c;return cells.length?cells[cells.length-1].c:null;};
+  const scaleSet=new Set(pcs.map(x=>(((x+km)%12)+12)%12));
+  const snap=(m,q)=>{const c=chordAt(q);if(!c)return m;let pp=c.piano.map(x=>((x%12)+12)%12);
+    if(L===5){const f=pp.filter(x=>scaleSet.has(x));pp=f.length?f:[...scaleSet];}   // 펜타(사극): 코드가 뭐든 선율은 펜타 유지 — 코드톤∩펜타, 없으면 펜타 최근접
+    let best=m,bd=99;for(let o=-6;o<=6;o++){const mm=m+o;if(pp.includes(((mm%12)+12)%12)&&Math.abs(o)<bd){bd=Math.abs(o);best=mm;}}return best;};
+  const out=[];
+  const unit=(mot,q0,degOff,opts)=>{opts=opts||{};
+    const frame=opts.frame||8,span=opts.span||2*barQ,f=span/frame;   // 박자 비례 스케일: 8박 프레임 → 실제 2마디(6/8 등 비4/4 대응)
+    mot.rh.forEach(([b0,du0],i)=>{const b=b0*f,du=du0*f;const t=q0+b;if(t>=secEnd-1e-6)return;
+      let deg=mot.ct[i]+degOff;
+      if(opts.cap!=null)deg=Math.min(deg,opts.cap);
+      if(opts.peakAt===i)deg=opts.peak;
+      let m=degMidi(deg);
+      const strong=(b%barQ===0)||du>=1;
+      if(strong)m=snap(m,t);
+      let dur=du,vel=(b%barQ===0)?86:(b%1!==0)?76:70;
+      if(opts.cadLast&&i===mot.rh.length-1){dur=Math.max(du,(opts.winEnd??secEnd)-t);m=snap(degMidi(0),t);vel=82;}   // 종지: 토닉 근처 롱톤
+      out.push({t,dur:Math.max(0.2,Math.min(dur*0.94,secEnd-t)),midi:m,vel});});
+  };
+  const bars=sec.grid.length;
+  if(type==='Chorus'){
+    const maxA=Math.max(...MOTIFS.cho.ct),peak=maxA+2+lift;
+    for(let w=0;w*2<bars;w++){const q0=startQ+w*2*barQ,lastW=(w+1)*2>=bars;
+      if(!lastW&&w%4===2)unit(MOTIFS.cho,q0,1+lift,{peakAt:MOTIFS.cho.ct.indexOf(maxA),peak});      // B: 리프트+피크 1회
+      else unit(MOTIFS.cho,q0,lift,{cap:maxA+lift,cadLast:lastW,winEnd:q0+2*barQ});}
+  }else if(type==='Verse'){
+    for(let w=0;w*2<bars;w++)unit(MOTIFS.ver,startQ+w*2*barQ,0,{cadLast:(w+1)*2>=bars,winEnd:startQ+(w+1)*2*barQ});
+  }else if(type==='PreChorus'){
+    for(let b=0;b<bars;b++)unit(MOTIFS.pre,startQ+b*barQ,Math.min(b,3),{frame:4,span:barQ});    // 상승 시퀀스
+  }else{
+    for(let b=0;b<bars;b++)unit(MOTIFS.post,startQ+b*barQ,0,{frame:4,span:barQ});               // 챈트 반복
+  }
+  out.sort((a,b)=>a.t-b.t);return out;
+}
+function melodyRegion(ch,s,d,e,out,bb,bs,bts){
+  const inReg=pc=>{let m=((pc%12)+12)%12+72;while(m<71)m+=12;while(m>83)m-=12;return m;};
+  const ctones=[...new Set(ch.piano.map(p=>((p%12)+12)%12))];
+  const chordNotes=ctones.map(inReg).sort((a,b)=>a-b);
+  const scOff=SCALES[curPerf.scale]||MAJ_OFF;
+  const scaleNotes=[...new Set(scOff.map(x=>(keyPc()+x)%12).concat(ctones))].map(inReg).sort((a,b)=>a-b);
+  if(!chordNotes.length)return null;
+  let onset=null;                                          // 셀 첫 음(피아노 탑 보이싱이 비켜줄 기준)
+  const lyrical=['ballad','jballad','worship','royalroad','celtic','saguk'].includes(state.style);
+  /* --- 마디 리듬 모티브: 섹션 내 반복(그루브·통일감) + 마디별 소변형, 쉼표 내장 --- */
+  if(!melRhyMotif||melRhyMotif.bb!==bb){
+    const cells=[];let pos=0;
+    if(melRng()<(lyrical?0.3:0.5)){cells.push({o:0,len:0.5,rest:true});pos=0.5;}      // 픽업 쉼표(엇박 시작)
+    const pool=lyrical?(e<=3?[2,1.5,1,1,0.5,0.5]:[1,1.5,0.5,1,0.5,2])
+                      :(e<=2?[1,1.5,0.5,1,2]:[0.5,1,0.5,1,1.5,0.5]);
+    let restSum=pos;
+    while(bb-pos>0.26){
+      let L=pool[Math.floor(melRng()*pool.length)];if(L>bb-pos)L=bb-pos;
+      cells.push({o:pos,len:L,rest:false});pos+=L;
+      if(bb-pos>=0.5&&(L>=2?melRng()<0.35:melRng()<0.1)){cells.push({o:pos,len:0.5,rest:true});pos+=0.5;restSum+=0.5;} // 긴 음 뒤 호흡
+    }
+    if(restSum<0.5){const last=cells[cells.length-1];                                   // 마디 끝 숨 보장
+      if(!last.rest&&last.len>=1){last.len-=0.5;cells.push({o:last.o+last.len,len:0.5,rest:true});}
+      else if(!last.rest){last.rest=true;}}
+    melRhyMotif={bb,cells};
+  }
+  /* --- 마디별 소변형: 음 하나를 쉬거나(콜&리스폰스) 쪼갬 --- */
+  if(bs!==melBarSeen){melBarSeen=bs;melBarCount++;
+    const notes=melRhyMotif.cells.filter(c=>!c.rest);
+    melRhyMotif.varSkip=(notes.length>2&&melRng()<0.3)?1+Math.floor(melRng()*(notes.length-1)):-1;
+    melRhyMotif.varSplit=(melRng()<0.25)?Math.floor(melRng()*notes.length):-1;
+  }
+  const phraseEndBar=melBarCount%4===0;                                                  // 4마디 프레이즈 끝맺음
+  let ni=-1;
+  for(const c of melRhyMotif.cells){
+    if(c.rest)continue;ni++;
+    if(ni===melRhyMotif.varSkip)continue;                                                // 변형: 쉼
+    const subs=(ni===melRhyMotif.varSplit&&c.len>=1&&Math.abs(c.len%1)<1e-6)?[[c.o,c.len/2],[c.o+c.len/2,c.len/2]]:[[c.o,c.len]];
+    for(const [o,L] of subs){
+      const rel=o-(s-bs);if(rel<-1e-6||rel>=d-1e-6)continue;                             // 이 코드 셀 범위만
+      const tt=s+rel,strong=Math.abs(o%1)<1e-6&&(o%2<1e-6||o<1e-6),long=L>=1.5;
+      const isLast=o+L>=bb-0.51;
+      let cand;
+      if(melLast===null)cand=chordNotes[Math.floor(chordNotes.length/2)]||72;
+      else if(melLeapDir!==0){                                                           // 도약 후: 반대 방향 순차 해결
+        const dir=-melLeapDir;const near=scaleNotes.filter(n=>(n-melLast)*dir>0&&Math.abs(n-melLast)<=2);
+        cand=near.length?near[0]:chordNotes.reduce((p,c2)=>Math.abs(c2-melLast)<Math.abs(p-melLast)?c2:p,chordNotes[0]);
+        melLeapDir=0;
+      }
+      else if(long||strong||(phraseEndBar&&isLast)||melRng()<0.5){                       // 긴 음·강박·프레이즈 끝: 화음음
+        cand=chordNotes.reduce((p,c2)=>Math.abs(c2-melLast)<Math.abs(p-melLast)?c2:p,chordNotes[0]);
+        if(!isLast&&melRng()<0.22){const lp=chordNotes.filter(n=>{const dd2=Math.abs(n-melLast);return dd2>=4&&dd2<=9;});
+          if(lp.length){cand=mpick(lp);melLeapDir=Math.sign(cand-melLast);}}             // 표현적 도약(다음에 해결)
+      } else {                                                                            // 짧은 음: 음계 경과·보조음
+        const near=scaleNotes.filter(n=>Math.abs(n-melLast)<=2&&n!==melLast);
+        cand=near.length?mpick(near):melLast;
+      }
+      if(melLast!==null){while(cand-melLast>9)cand-=12;while(melLast-cand>9)cand+=12;}
+      cand=inReg(cand);
+      /* 벨로시티: 박 위계 + 음높이 컨투어 + 프레이즈 감쇠 + 지터 → 노래하는 셈여림 */
+      let v=50+(strong?9:(Math.abs(o%1)<1e-6?4:0))+(cand-76)*0.8+(long?3:0)+Math.round((melRng()*2-1)*4);
+      if(phraseEndBar&&isLast)v-=7;
+      v=Math.max(34,Math.min(88,Math.round(v)));
+      /* 아티큘레이션: 레가토/논레가토 섞기, 프레이즈 끝은 충분히 지속 */
+      const gate=(phraseEndBar&&isLast)?0.98:(long?0.95:(melRng()<0.35?0.78:0.92));
+      let t=tt+swOff(o,0.5);if(state.humanize)t=Math.max(s,t+(melRng()*2-1)*0.012);
+      out.push({t,dur:Math.max(0.18,Math.min(L*gate,s+d-tt)),midi:cand,vel:v});
+      if(onset===null)onset=cand;
+      melLast=cand;
+    }
+  }
+  return onset;
+}
+/* 기타 — 스타일별, 마디 첫박 그리드(bs)에 고정 */
+function guitarRegion(ch,s,d,e,out,bb,bs,bts){const g=ch.guitar,BB=bb||4;bts=bts||[0,1,2,3];
+  const within=tt=>tt>=s-1e-6&&tt<s+d-1e-6;
+  switch(curPerf.gtr){
+    case 'none':return;
+    case 'power':{if(e<=1)return;const arr=e>=3?ch.power:g;
+      if(e>=4){for(let o=0;o<BB-1e-6;o+=0.5){const tt=bs+o;if(within(tt))arr.forEach(p=>out.push({t:tt+swOff(o,0.5),dur:0.42,midi:p,vel:74}));}}
+      else bts.forEach(o=>{const tt=bs+o;if(within(tt))arr.forEach(p=>out.push({t:tt,dur:0.9,midi:p,vel:56}));});return;}
+    case 'chuck16':{if(e<=1)return;const step=e>=3?0.25:0.5;
+      for(let o=0;o<BB-1e-6;o+=step){const i=Math.round(o/step);if(e<4&&i%2===0)continue;const tt=bs+o;if(!within(tt))continue;const acc=i%4===2;
+        g.forEach(p=>out.push({t:tt,dur:0.1,midi:p,vel:acc?60:40}));}return;}
+    case 'arp':{const order=[g[0],g[1],g[2],g[1]];let i=0;
+      for(let o=0;o<BB-1e-6;o+=0.5){const tt=bs+o;if(within(tt))out.push({t:tt,dur:0.6,midi:order[i%order.length],vel:i%2?42:52});i++;}return;}
+    default:{ // strum
+      if(e<=1)return;if(e===2){g.forEach(p=>out.push({t:s,dur:d*0.9,midi:p,vel:50}));return;}
+      if(e>=4){for(let o=0;o<BB-1e-6;o+=0.5){const up=Math.round(o/0.5)%2===1;const tt=bs+o;if(within(tt))g.forEach(p=>out.push({t:tt+swOff(o,0.5),dur:0.35,midi:p,vel:up?44:54}));}}
+      else bts.forEach(o=>{const tt=bs+o;if(within(tt))g.forEach(p=>out.push({t:tt,dur:0.9,midi:p,vel:52}));});}
+  }
+}
+function fmt(s){const mm=Math.floor(s/60),ss=Math.round(s%60);return mm+':'+String(ss).padStart(2,'0');}
+
+/* ===== Web Audio ===== */
+let ctx,master,reverb,noiseBuf,BUS={},GTRIN=null,nodes=[],stopT=null,raf=null;   // GTRIN: 일렉기타 체인(클린/드라이브)
+let breathFilter,breathGain;              // 전체 믹스 호흡(필터+음량)
+let playing=false,playSec=-1,playGen=0;   // 재생 상태(구간 버튼 토글용)
+function audioInit(){if(ctx)return;
+  ctx=new (window.AudioContext||window.webkitAudioContext)();
+  master=ctx.createGain();master.gain.value=0.46;const comp=ctx.createDynamicsCompressor();comp.threshold.value=-14;comp.ratio.value=3.5;comp.knee.value=8;comp.attack.value=0.004;comp.release.value=0.25;
+  breathFilter=ctx.createBiquadFilter();breathFilter.type='lowpass';breathFilter.frequency.value=20000;breathFilter.Q.value=0.3; // 전체 호흡: 필터
+  breathGain=ctx.createGain();breathGain.gain.value=1;                                                                        // 전체 호흡: 음량
+  const sat=ctx.createWaveShaper();{const n=1024,cv=new Float32Array(n);for(let i=0;i<n;i++){const x=i/(n-1)*2-1;cv[i]=Math.tanh(1.6*x)/Math.tanh(1.6);}sat.curve=cv;sat.oversample='2x';} // 소프트 새추레이션(글루·배음)
+  const warm=ctx.createBiquadFilter();warm.type='lowshelf';warm.frequency.value=110;warm.gain.value=1.5;   // 저역 온기
+  const air=ctx.createBiquadFilter();air.type='highshelf';air.frequency.value=8500;air.gain.value=2.5;     // 고역 공기감
+  master.connect(breathFilter);breathFilter.connect(breathGain);breathGain.connect(sat);sat.connect(warm);warm.connect(air);air.connect(comp);comp.connect(ctx.destination);
+  reverb=ctx.createConvolver();reverb.buffer=makeImpulse(1.8,2.4);const rg=ctx.createGain();rg.gain.value=0.45;reverb.connect(rg);rg.connect(master);
+  const PANS={piano:-0.06,bass:0,guitar:-0.3,drums:0.05,melody:0.14,lead:0.1,counter:-0.22,drone:0};   // 스테레오 배치: 기타 L·대선율 L·멜로디 R
+  ['piano','bass','guitar','drums','melody','lead','counter','drone'].forEach(k=>{const g=ctx.createGain();g.gain.value=state.enabled[k]?1:0;
+    let out=g;if(ctx.createStereoPanner){const pn=ctx.createStereoPanner();pn.pan.value=PANS[k]||0;g.connect(pn);out=pn;}
+    out.connect(master);BUS[k]=g;});
+  /* 일렉기타 체인 — 록: 프리게인→디스토션→캐비닛 / 클린: 슬랩백 딜레이 */
+  GTRIN={clean:ctx.createGain(),drive:ctx.createGain()};
+  {const pre=ctx.createGain();pre.gain.value=2.6;
+   const shp=ctx.createWaveShaper();{const n=1024,cv=new Float32Array(n);for(let i=0;i<n;i++){const x=i/(n-1)*2-1;cv[i]=Math.tanh(5.5*x)/Math.tanh(5.5);}shp.curve=cv;shp.oversample='2x';}
+   const hp=ctx.createBiquadFilter();hp.type='highpass';hp.frequency.value=95;
+   const cab=ctx.createBiquadFilter();cab.type='lowpass';cab.frequency.value=3400;cab.Q.value=0.7;
+   const post=ctx.createGain();post.gain.value=0.5;
+   GTRIN.drive.connect(pre);pre.connect(shp);shp.connect(hp);hp.connect(cab);cab.connect(post);post.connect(BUS.guitar);}
+  {const dl=ctx.createDelay(0.3);dl.delayTime.value=0.095;
+   const fb=ctx.createGain();fb.gain.value=0.2;const dlp=ctx.createBiquadFilter();dlp.type='lowpass';dlp.frequency.value=2600;
+   const wet=ctx.createGain();wet.gain.value=0.22;
+   GTRIN.clean.connect(BUS.guitar);GTRIN.clean.connect(dl);dl.connect(dlp);dlp.connect(fb);fb.connect(dl);dlp.connect(wet);wet.connect(BUS.guitar);}
+  const ps=ctx.createGain();ps.gain.value=0.12;BUS.piano.connect(ps);ps.connect(reverb);
+  const gs=ctx.createGain();gs.gain.value=0.12;BUS.guitar.connect(gs);gs.connect(reverb);
+  const ms=ctx.createGain();ms.gain.value=0.16;BUS.melody.connect(ms);ms.connect(reverb);
+  const ls=ctx.createGain();ls.gain.value=0.16;BUS.lead.connect(ls);ls.connect(reverb);          // 리드(인트로/아웃트로 테마)
+  const cs=ctx.createGain();cs.gain.value=0.14;BUS.counter.connect(cs);cs.connect(reverb);        // 대선율
+  const drs=ctx.createGain();drs.gain.value=0.22;BUS.drone.connect(drs);drs.connect(reverb);      // 드론(지속음)은 리버브 좀 더
+  const len=ctx.sampleRate*2;noiseBuf=ctx.createBuffer(1,len,ctx.sampleRate);const d=noiseBuf.getChannelData(0);for(let i=0;i<len;i++)d[i]=Math.random()*2-1;
+  try{const u=ctx.createBufferSource();u.buffer=ctx.createBuffer(1,1,ctx.sampleRate);u.connect(ctx.destination);u.start(0);}catch(e){} // iOS 오디오 잠금 해제(무음 1샘플)
+}
+/* 컨텍스트 클럭이 '실제로' 돌기 시작(currentTime>0)할 때까지 기다렸다가 콜백 — 첫 재생 무음 방지 */
+function whenClockLive(cb){let tries=0;
+  const step=()=>{if(ctx.state!=='running'&&ctx.resume)ctx.resume();
+    if(ctx.currentTime>0||tries++>120){cb();}else requestAnimationFrame(step);};
+  step();}
+function makeImpulse(dur,decay){const rate=ctx.sampleRate,len=rate*dur,b=ctx.createBuffer(2,len,rate);for(let c=0;c<2;c++){const d=b.getChannelData(c);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,decay);}return b;}
+const f2m=m=>440*Math.pow(2,(m-69)/12);
+/* 드론 패드: 디튠 사인/삼각 겹층 + 느린 어택 + 호흡 주기 진폭 스웰(들숨↑ 날숨↓) */
+function drone(t,dur,midi,vel){
+  const f=f2m(midi),peak=Math.max(0.02,(vel/127)*0.5);
+  const lp=ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=Math.min(900,f*4);lp.Q.value=0.4;
+  const amp=ctx.createGain();lp.connect(amp);amp.connect(BUS.drone);
+  const atk=Math.min(2.5,dur*0.2),rel=Math.min(3,dur*0.3);
+  amp.gain.setValueAtTime(0.0001,t);amp.gain.exponentialRampToValueAtTime(peak,t+atk);
+  amp.gain.setValueAtTime(peak,Math.max(t+atk,t+dur-rel));amp.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  [[0,'sine',1.0],[-6,'sine',0.7],[7,'triangle',0.35],[0.2,'sawtooth',0.12]].forEach(([dt,w,lvl])=>{
+    const o=ctx.createOscillator(),og=ctx.createGain();o.type=w;o.frequency.value=f;o.detune.value=dt;og.gain.value=lvl;
+    o.connect(og);og.connect(lp);o.start(t);o.stop(t+dur+0.05);nodes.push(o);});}
+/* 전체 믹스 호흡: 마스터 직전 필터·음량을 들숨/정지/날숨 곡선으로 그린다(비대칭). 드론 없이도 곡이 숨쉼 */
+function scheduleBreath(t0,durSec){
+  if(!breathGain||!breathFilter)return;
+  const G=breathGain.gain,F=breathFilter.frequency;
+  G.cancelScheduledValues(t0);F.cancelScheduledValues(t0);
+  if(!(state.breathAlign&&state.breathRate>0)){G.setValueAtTime(1,t0);F.setValueAtTime(20000,t0);return;} // 호흡 OFF → 투명
+  const inhale=state.breathIn||4,exhale=state.breathOut||6,period=inhale+exhale;   // 패턴별 비대칭(들숨:날숨)
+  const gLo=0.82,gHi=1.0,fLo=2400,fHi=7600;                             // 날숨=어둡고 여림 / 들숨=밝고 참
+  let t=t0;G.setValueAtTime(gLo,t);F.setValueAtTime(fLo,t);
+  const end=t0+durSec+period;
+  while(t<end){
+    G.linearRampToValueAtTime(gHi,t+inhale);F.linearRampToValueAtTime(fHi,t+inhale);           // 들숨: 차오르고 밝아짐
+    G.linearRampToValueAtTime(gLo,t+period);F.linearRampToValueAtTime(fLo,t+period);            // 날숨: 잦아들고 어두워짐
+    t+=period;
+  }
+}
+/* 일렉기타 보이스: 피킹 트랜지언트 + 현 감쇠 + 플럭 필터(밝게 튕겨 어두워짐). 록=드라이브, 그 외=클린 */
+function guitarTone(n,t,dur){
+  const drive=ROCK.includes(state.style);
+  const dest=(GTRIN&&(drive?GTRIN.drive:GTRIN.clean))||BUS.guitar;
+  const f=f2m(n.midi),peak=Math.max(0.02,(n.vel/127)*(drive?0.20:0.30));
+  const lp=ctx.createBiquadFilter();lp.type='lowpass';lp.Q.value=0.5;
+  const bright=Math.min(5200,900+n.vel*34);
+  lp.frequency.setValueAtTime(bright,t);
+  lp.frequency.exponentialRampToValueAtTime(Math.max(700,f*1.6),t+Math.min(0.35,Math.max(0.08,dur)));
+  const g=ctx.createGain();
+  g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(peak,t+0.004);
+  g.gain.exponentialRampToValueAtTime(peak*(drive?0.5:0.4),t+Math.min(0.28,dur*0.6));
+  g.gain.exponentialRampToValueAtTime(0.0001,t+dur+0.09);
+  const mk=det=>{const o=ctx.createOscillator();o.type='sawtooth';o.frequency.value=f;o.detune.value=det;o.connect(lp);o.start(t);o.stop(t+dur+0.14);nodes.push(o);};
+  mk(-5);mk(5);
+  lp.connect(g);g.connect(dest);
+}
+function tone(bus,{wave,midi,t,dur,vel,lpf,atk=0.005,rel,detune=0,lvl=1}){
+  const o=ctx.createOscillator();o.type=wave;o.frequency.value=f2m(midi);if(detune)o.detune.value=detune;
+  const g=ctx.createGain(),lp=ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=lpf;
+  const peak=Math.max(0.02,(vel/127)*lvl),r=rel??Math.min(0.6,dur*0.5);
+  g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(peak,t+atk);g.gain.exponentialRampToValueAtTime(0.0001,t+dur+r);
+  o.connect(lp);lp.connect(g);g.connect(BUS[bus]);o.start(t);o.stop(t+dur+r+0.05);nodes.push(o);}
+/* 바이올린 — 부드럽게: 어둡고 느린 보잉 + 톱니+삼각 혼합 + 옅은 바디 공명 */
+function violin(t,dur,midi,vel,bus){
+  const f=f2m(midi),peak=Math.max(0.02,(vel/127)*0.30);
+  const lp=ctx.createBiquadFilter();lp.type='lowpass';lp.Q.value=0.6;
+  lp.frequency.setValueAtTime(Math.min(1700,f*2.4),t);lp.frequency.linearRampToValueAtTime(Math.min(4000,f*4.6),t+0.18); // 더 어둡고 천천히 열림
+  const body=ctx.createBiquadFilter();body.type='peaking';body.frequency.value=2300;body.Q.value=0.8;body.gain.value=1.5;
+  const amp=ctx.createGain();lp.connect(body);body.connect(amp);amp.connect(BUS[bus||'melody']);
+  const r=Math.min(0.45,0.22+dur*0.12);
+  amp.gain.setValueAtTime(0.0001,t);amp.gain.exponentialRampToValueAtTime(peak,t+0.14);amp.gain.setValueAtTime(peak,t+Math.max(0.14,dur*0.8));amp.gain.exponentialRampToValueAtTime(0.0001,t+dur+r);
+  [['sawtooth',-3,0.6],['triangle',4,1.0]].forEach(([w,dt,lvl])=>{const o=ctx.createOscillator(),og=ctx.createGain();o.type=w;o.frequency.value=f;o.detune.value=dt;og.gain.value=lvl;o.connect(og);og.connect(lp);o.start(t);o.stop(t+dur+r+0.05);nodes.push(o);
+    const lfo=ctx.createOscillator();lfo.type='sine';lfo.frequency.value=5.1;const ld=ctx.createGain();
+    ld.gain.setValueAtTime(0.0001,t);ld.gain.linearRampToValueAtTime(10,t+Math.min(0.32,dur*0.55)); // 비브라토 ±10센트, 천천히
+    lfo.connect(ld);ld.connect(o.detune);lfo.start(t);lfo.stop(t+dur+r+0.05);nodes.push(lfo);});}
+function drum(type,t,vel){const v=vel/127,B=BUS.drums;
+  if(type==='kick'){const o=ctx.createOscillator(),g=ctx.createGain();o.type='sine';o.frequency.setValueAtTime(135,t);o.frequency.exponentialRampToValueAtTime(45,t+0.09);g.gain.setValueAtTime(v*0.95,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.2);o.connect(g);g.connect(B);o.start(t);o.stop(t+0.25);nodes.push(o);}
+  else if(type==='snare'){const n=ctx.createBufferSource();n.buffer=noiseBuf;const bp=ctx.createBiquadFilter();bp.type='bandpass';bp.frequency.value=1900;bp.Q.value=0.9;const g=ctx.createGain();g.gain.setValueAtTime(v*0.7,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.14);n.connect(bp);bp.connect(g);g.connect(B);const o=ctx.createOscillator(),g2=ctx.createGain();o.type='triangle';o.frequency.value=180;g2.gain.setValueAtTime(v*0.35,t);g2.gain.exponentialRampToValueAtTime(0.001,t+0.09);o.connect(g2);g2.connect(B);n.start(t);n.stop(t+0.16);o.start(t);o.stop(t+0.1);nodes.push(n,o);}
+  else if(type==='hat'){const n=ctx.createBufferSource();n.buffer=noiseBuf;const hp=ctx.createBiquadFilter();hp.type='highpass';hp.frequency.value=7000;const g=ctx.createGain();g.gain.setValueAtTime(v*0.3,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.045);n.connect(hp);hp.connect(g);g.connect(B);n.start(t);n.stop(t+0.06);nodes.push(n);}
+  else if(type==='crash'){const n=ctx.createBufferSource();n.buffer=noiseBuf;const hp=ctx.createBiquadFilter();hp.type='highpass';hp.frequency.value=4000;const g=ctx.createGain();g.gain.setValueAtTime(v*0.42,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.9);n.connect(hp);hp.connect(g);g.connect(B);n.start(t);n.stop(t+1.0);nodes.push(n);}
+  else if(type[0]==='t'){const f={tom1:240,tom2:180,tom3:130}[type];const o=ctx.createOscillator(),g=ctx.createGain();o.type='sine';o.frequency.setValueAtTime(f*1.4,t);o.frequency.exponentialRampToValueAtTime(f,t+0.06);g.gain.setValueAtTime(v*0.7,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.2);o.connect(g);g.connect(B);o.start(t);o.stop(t+0.25);nodes.push(o);
+    const nz=ctx.createBufferSource();nz.buffer=noiseBuf;const lp=ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=f*3;const g3=ctx.createGain();g3.gain.setValueAtTime(v*0.18,t);g3.gain.exponentialRampToValueAtTime(0.001,t+0.08);nz.connect(lp);lp.connect(g3);g3.connect(B);nz.start(t);nz.stop(t+0.1);nodes.push(nz);}}
+
+function playWin(winS,winE,loop,secIdx){
+  arrange();audioInit();stop(true);
+  const gen=++playGen;playing=true;playSec=(secIdx==null?-1:secIdx);
+  $('transport').classList.add('playing');$('play').disabled=false;$('stop').disabled=false;
+  refreshSecButtons();
+  const startAt=()=>{if(gen!==playGen)return;                       // 그새 정지/재시작됐으면 취소
+    const t0=ctx.currentTime+0.12,base=qToSec(winS);               // 클럭이 도는 시점에서 시작점 계산
+    const at=q=>Math.max(ctx.currentTime+0.02,t0+(qToSec(q)-base)),ds=n=>Math.max(0.04,qToSec(n.t+n.dur)-qToSec(n.t));
+    const sched=(arr,fn)=>arr.forEach(n=>{if(n.t>=winS-1e-6&&n.t<winE-1e-6)fn(n);});
+    sched(MODEL.tracks.bass,n=>tone('bass',{wave:'triangle',midi:n.midi,t:at(n.t),dur:ds(n),vel:n.vel,lpf:700*(n.atmos?(0.7+0.3*(n.bright??1)):1),lvl:0.85,atk:n.atmos?0.08:0.005,rel:0.1}));
+    let pedIv=[];if(state.pedal&&MODEL.tracks.pedal){let dn=null;MODEL.tracks.pedal.forEach(ev=>{if(ev.val>=64){if(dn==null)dn=ev.t;}else if(dn!=null){pedIv.push([dn,ev.t]);dn=null;}});if(dn!=null)pedIv.push([dn,MODEL.totalQ]);}
+    const pedalEndQ=t=>{for(const iv of pedIv){if(t>=iv[0]-1e-6&&t<iv[1]-1e-6)return iv[1];}return null;};
+    sched(MODEL.tracks.piano,n=>{let endQ=n.t+n.dur;const pe=pedalEndQ(n.t);if(pe!=null&&pe>endQ)endQ=pe;
+      let ring=qToSec(endQ)-qToSec(n.t);ring=Math.max(0.12,Math.min(n.atmos?9:4,ring));
+      tone('piano',{wave:'triangle',midi:n.midi,t:at(n.t),dur:0.03,vel:n.vel,lpf:3400*(n.bright??1),lvl:0.42,atk:n.atmos?0.09:0.004,rel:ring});});
+    sched(MODEL.tracks.guitar,n=>guitarTone(n,at(n.t),ds(n)));   // 일렉기타 보이스(록=드라이브/클린=슬랩백)
+    sched(MODEL.tracks.melody,n=>violin(at(n.t),ds(n),n.midi,n.vel,n.theme?'lead':'melody'));
+    sched(MODEL.tracks.counter,n=>tone('counter',{wave:'sawtooth',midi:n.midi,t:at(n.t),dur:ds(n),vel:n.vel,lpf:2400,lvl:0.42,atk:0.008,rel:0.14})); // 대선율(클린 신스/기타 질감)
+    sched(MODEL.tracks.drums,n=>drum(n.type,at(n.t),n.vel));
+    sched(MODEL.tracks.drone,n=>drone(at(n.t),ds(n),n.midi,n.vel));
+    const winSec=qToSec(winE)-base;
+    scheduleBreath(t0,winSec);                                        // 전체 믹스가 호흡(드론 없이도)
+    hi(t0,winS);stopT=setTimeout(()=>{if(loop&&state.loop)playWin(winS,winE,true,secIdx);else stop();},(winSec+(loop?0.05:1.6))*1000);
+  };
+  const pr=(ctx.state!=='running'&&ctx.resume)?ctx.resume():null;   // 컨텍스트가 깨어나고 클럭이 돌기 시작한 뒤 스케줄 → 인트로도 정상
+  if(pr&&pr.then)pr.then(()=>whenClockLive(startAt)).catch(()=>whenClockLive(startAt));else whenClockLive(startAt);
+}
+const play=()=>{arrange();playWin(0,MODEL.totalQ,false,-1);}; // 전체재생: 항상 처음부터 재생(막힘 없음)
+function playSection(i){if(playing&&playSec===i){stop();return;}arrange();const r=MODEL.sections[i];playWin(r.startQ,r.endQ,state.loop,i);}
+function refreshSecButtons(){document.querySelectorAll('.secplay').forEach(b=>{const on=playing&&+b.dataset.i===playSec;
+  b.textContent=on?'⏹ 정지':'▶ 이 구간';b.classList.toggle('on',on);});}
+function hi(t0,winS){const base=qToSec(winS);function tick(){if(!ctx)return;const bq=secToQ(base+(ctx.currentTime-t0));
+  document.querySelectorAll('.scard,.seg').forEach(el=>el.classList.remove('now'));
+  MODEL.sections.forEach((s,i)=>{if(bq>=s.startQ&&bq<s.endQ){document.querySelector(`.scard[data-i="${i}"]`)?.classList.add('now');document.querySelector(`.seg[data-i="${i}"]`)?.classList.add('now');}});
+  raf=requestAnimationFrame(tick);}cancelAnimationFrame(raf);tick();}
+function stop(silent){if(stopT){clearTimeout(stopT);stopT=null;}playGen++;nodes.forEach(n=>{try{n.stop();}catch(e){}});nodes=[];
+  if(raf)cancelAnimationFrame(raf);document.querySelectorAll('.scard,.seg').forEach(el=>el.classList.remove('now'));
+  if(!silent){playing=false;playSec=-1;$('transport').classList.remove('playing');$('play').disabled=false;$('stop').disabled=true;refreshSecButtons();}}
+
+/* ===== MIDI ===== */
+function vlq(n){let b=n&0x7F,o=[];while(n>>=7){b<<=8;b|=((n&0x7F)|0x80);}while(1){o.push(b&0xFF);if(b&0x80)b>>=8;else break;}return o;}
+const sbm=s=>{const o=[];for(const ch of s){let c=ch.codePointAt(0);if(c<0x80)o.push(c);else if(c<0x800){o.push(0xC0|(c>>6),0x80|(c&0x3F));}else if(c<0x10000){o.push(0xE0|(c>>12),0x80|((c>>6)&0x3F),0x80|(c&0x3F));}else{o.push(0xF0|(c>>18),0x80|((c>>12)&0x3F),0x80|((c>>6)&0x3F),0x80|(c&0x3F));}}return o;},u32=n=>[(n>>>24)&255,(n>>>16)&255,(n>>>8)&255,n&255],u16=n=>[(n>>>8)&255,n&255];
+const DRUMMIDI={kick:36,snare:38,hat:42,crash:49,tom1:48,tom2:45,tom3:41};
+const exportPadQ=()=>4*METERS[secMeter(state.sections[0])].q;   // MIDI 앞뒤 여백: 4마디(첫 구간 박자 기준) — 로직 편집 공간
+function noteTrack(notes,ch,prog,isDrum,ctrl,name){const PPQ=480,ev=[],padT=Math.round(exportPadQ()*PPQ);
+  notes.forEach(n=>{const midi=isDrum?DRUMMIDI[n.type]:n.midi,dur=isDrum?0.12:n.dur;ev.push({t:padT+Math.round(n.t*PPQ),k:1,on:1,midi,vel:n.vel});ev.push({t:padT+Math.round((n.t+dur)*PPQ),k:1,on:0,midi,vel:0});});
+  if(ctrl)ctrl.forEach(c=>ev.push({t:padT+Math.round(c.t*PPQ),k:0,cc:c.ctrl,val:c.val}));   // CC: 노트보다 먼저(k:0) — 페달이 음을 미리 받게
+  ev.sort((a,b)=>a.t-b.t||a.k-b.k||(a.on!=null?a.on:0)-(b.on!=null?b.on:0));let body=[];
+  if(name){const nb=sbm(name);body.push(...vlq(0),0xFF,0x03,...vlq(nb.length),...nb);}   // 길이도 VLQ(멀티바이트 안전)         // 트랙 이름(FF 03) → 로직 트랙 헤더에 표시
+  if(prog!=null)body.push(...vlq(0),0xC0|ch,prog);let last=0;
+  ev.forEach(e=>{body.push(...vlq(e.t-last));last=e.t;
+    if(e.k===0)body.push(0xB0|ch,e.cc,e.val);
+    else if(e.on)body.push(0x90|ch,e.midi,e.vel);else body.push(0x80|ch,e.midi,0);});
+  body.push(...vlq(0),0xFF,0x2F,0x00);return [...sbm('MTrk'),...u32(body.length),...body];}
+const ped64=()=>(state.pedal&&MODEL.tracks.pedal&&MODEL.tracks.pedal.length)?MODEL.tracks.pedal.map(e=>({t:e.t,ctrl:64,val:e.val})):null;
+/* 익스프레션(CC11): 지속음 트랙의 롱톤(2박+) 스웰 — 78→110(65% 지점)→88, 직후 100 리셋.
+   벨로시티가 '치는 순간'이라면 CC11은 '울리는 동안' — 현·혼·드론·리드 롱톤이 살아 숨쉼. 난수 없음(결정론·훅 동일성 유지). */
+function exprEvents(notes){if(!notes||!notes.length)return null;
+  const ev=[{t:0,ctrl:11,val:100}];let any=false;
+  notes.forEach(n=>{if(n.dur<1.6)return;any=true;   // 앱 노트는 0.94 스케일이라 2박 롱톤=1.88 — 1.6으로 실제 롱톤 포착
+    const up=n.dur*0.65,us=Math.min(8,Math.max(3,Math.round(up/0.5)));
+    for(let i=0;i<=us;i++){const f=i/us;ev.push({t:n.t+up*f,ctrl:11,val:Math.round(78+32*f)});}
+    const down=n.dur-up,ds=Math.min(4,Math.max(2,Math.round(down/0.5)));
+    for(let i=1;i<=ds;i++){const f=i/ds;ev.push({t:n.t+up+down*f,ctrl:11,val:Math.round(110-22*f)});}
+    ev.push({t:n.t+n.dur+0.05,ctrl:11,val:100});});
+  return any?ev:null;}
+/* 파트별 최적 악기: 트랙 이름(로직 헤더 표시) + 어울리는 GM 음색 — 이름 보고 음원 교체 */
+function instMeta(part){const st=state.style,g=(PERF[st]||{}).gtr;
+  const map={
+    piano: ['epic','animeost'].includes(st)?{n:'Strings (Sustain/Marcato Bed)',p:48}
+          :st==='saguk'?{n:'Gayageum (가야금 발현)',p:107}                      // 국악: 그랜드피아노 아님
+          :st==='gospel'?{n:'Hammond Organ (Gospel)',p:16}                      // 가스펠: 오르간이 핵심
+          :st==='komuro'?{n:'Poly Synth (90s Dance)',p:90}                      // 코무로계: 신스
+          :['neosoul','marusa'].includes(st)?{n:'Electric Piano (Rhodes)',p:4}
+          :['billie'].includes(st)?{n:'Electric Piano (FM)',p:5}
+          :['worship'].includes(st)?{n:'Grand Piano (+ Pad layer)',p:0}:{n:'Grand Piano',p:0},
+    bass:  ['epic','animeost'].includes(st)?{n:'Low Strings (Celli+Basses)',p:42}
+          :st==='saguk'?{n:'Ajaeng (아쟁 저음 현)',p:110}                        // 국악 저역: 일렉베이스 아님
+          :st==='gospel'?{n:'Upright Bass',p:32}
+          :st==='funk'?{n:'Slap Bass',p:36}
+          :['billie','komuro','kpop'].includes(st)?{n:'Synth Bass',p:38}:{n:'Electric Bass (finger)',p:33},
+    guitar:['epic','animeost'].includes(st)?{n:'Brass Section (Hits/Marcato)',p:61}
+          :st==='saguk'?{n:'Geomungo (거문고 · 없으면 트랙 OFF)',p:107}          // 국악 현: 일렉기타 아님
+          :g==='none'?{n:'(guitar 미사용 — 트랙 OFF 권장)',p:27}                 // billie 등: gtr none이면 미사용 명시
+          :st==='country'?{n:'Acoustic Guitar + Banjo layer',p:105}              // 컨트리: 밴조 정체성
+          :g==='power'?{n:'Overdriven Guitar',p:29}
+          :g==='arp'?(st==='celtic'?{n:'Acoustic Guitar (nylon)',p:24}:{n:'Acoustic Guitar (steel)',p:25})
+          :{n:'Clean Electric Guitar',p:27},
+    drums: ['epic','animeost'].includes(st)?{n:'Orch Perc (Timpani/GranCassa/Tam-tam)',p:null}
+          :st==='saguk'?{n:'Korean Perc (Janggu/Buk/Kkwaenggwari 장구·북)',p:null}  // 국악 타악: 드럼킷 아님
+          :{n:'Drum Kit',p:null},
+    melody:['epic','animeost'].includes(st)?{n:'Melody - Violins (Soaring)',p:48}
+          :st==='saguk'?{n:'Melody - Daegeum/Haegeum rec',p:75}
+          :st==='celtic'?{n:'Melody - Tin Whistle/Fiddle',p:78}
+          :st==='komuro'?{n:'Melody - Synth Lead (90s)',p:81}                   // 코무로: 기타 아닌 신스 리드
+          :ROCK.includes(st)?{n:'Melody - Vocal/Lead Guitar',p:30}
+          :['kpop','billie'].includes(st)?{n:'Melody - Vocal/Synth Lead',p:81}
+          :['funk','motown','gospel'].includes(st)?{n:'Melody - Vocal/Horns rec',p:56}
+          :['marusa','neosoul'].includes(st)?{n:'Melody - Vocal/Sax rec',p:66}
+          :['country','countrypop'].includes(st)?{n:'Melody - Vocal/Fiddle rec',p:110}
+          :{n:'Melody - Vocal line (Strings)',p:40},
+    lead:  ['epic','animeost'].includes(st)?{n:'Lead Theme - Woodwind (Flute/Oboe)',p:73}
+          :st==='saguk'?{n:'Lead Theme - Daegeum rec',p:75}
+          :st==='celtic'?{n:'Lead Theme - Whistle',p:78}
+          :{n:'Lead Theme (Flute)',p:73},
+    drone: ['epic','animeost'].includes(st)?{n:'Low Pedal (Basses Sustain)',p:48}
+          :st==='saguk'?{n:'Drone - Ajaeng/Saenghwang (생황)',p:109}
+          :st==='celtic'?{n:'Drone - Uilleann Pipes/Pad',p:109}
+          :['gospel','worship'].includes(st)?{n:'Drone - Organ Pad',p:16}         // 가스펠·워십: 오르간 지속음
+          :['country','countrypop'].includes(st)?{n:'Drone - Pedal Steel/Pad',p:26}  // 컨트리: 페달스틸
+          :['neosoul','marusa'].includes(st)?{n:'Drone - Warm Rhodes Pad',p:89}
+          :{n:'Drone Pad (Alchemy rec)',p:89},
+    counter:['epic','animeost'].includes(st)?{n:'Counter - French Horns',p:60}
+          :st==='saguk'?{n:'Counter - Haegeum/Piri rec',p:110}
+          :st==='celtic'?{n:'Counter - Whistle/Fiddle',p:110}
+          :ROCK.includes(st)?{n:'Counter - Lead Gt Riff',p:29}
+          :['motown','gospel','funk'].includes(st)?{n:'Counter - Horn Section',p:61}
+          :['ballad','jballad','worship'].includes(st)?{n:'Counter - Cello/Strings',p:42}
+          :['kpop','billie'].includes(st)?{n:'Counter - Synth Pluck',p:81}
+          :['country','countrypop'].includes(st)?{n:'Counter - Slide Gt/Fiddle',p:110}
+          :{n:'Counter - Clean Guitar',p:27},
+  };return map[part];}
+function tempoTrack(){const PPQ=480,M=METERS[secMeter(state.sections[0])];
+  /* 조표(FF 59): 5도권으로 #/b 수 계산. 단조 계열 스케일은 나란한조 조표+단조 플래그 → 로직 조표 트랙에 반영 */
+  const sfMaj=pc=>{let s=(pc*7)%12;return s>6?s-12:s;};
+  const kpc=keyPc(),sc=curPerf.scale;
+  /* 장/단 판정: 으뜸음 위 코드들의 성질(진행이 곡의 조성을 결정) + 단조형 스케일 스타일 */
+  let tonicCnt=0,minCnt=0;
+  state.sections.forEach(sec=>sec.grid.forEach(bar=>bar.forEach(sym=>{if(!sym)return;
+    const c=chordFromSym(sym);if(c&&c.pc===kpc){tonicCnt++;if(/^(min|dim)/.test(c.q))minCnt++;}})));
+  const isMinor=['aeolian','dorian','penta'].includes(sc)||(tonicCnt>0&&minCnt/tonicCnt>=0.5);
+  let sf,mi;
+  if(isMinor){sf=sfMaj((kpc+3)%12);mi=1;}                // 단조: 나란한 장조 조표 + 단조 플래그
+  else{sf=sfMaj(kpc);mi=0;}                              // 장조·장조형 펜타 등
+  const padT=Math.round(exportPadQ()*PPQ),endQ=MODEL.sections.length?MODEL.sections[MODEL.sections.length-1].endQ:0;
+  let evs=[{tick:0,type:'ts'},{tick:0,type:'ks'}],lastBpm=null;
+  if(MODEL.sections.length){evs.push({tick:0,type:'tempo',bpm:MODEL.sections[0].bpm});lastBpm=MODEL.sections[0].bpm;}   // 여백 4마디에도 템포 적용
+  MODEL.sections.forEach(s=>{if(s.bpm!==lastBpm){evs.push({tick:padT+Math.round(s.startQ*PPQ),type:'tempo',bpm:s.bpm});lastBpm=s.bpm;}});
+  /* 섹션 마커(FF 06): '구조 회차 (마디) [빌드 단계] | 코드 진행' — 로직 타임라인에서 몇 번째 벌스/코러스인지 바로 보임 */
+  evs.push({tick:0,type:'mark',text:`>> Edit space 4m <<`});                            // 앞 여백 표시
+  const labs=sectionLabels();
+  MODEL.sections.forEach((ms,i)=>{evs.push({tick:padT+Math.round(ms.startQ*PPQ),type:'mark',text:labs[i].label});});
+  evs.push({tick:padT+Math.round(endQ*PPQ),type:'mark',text:`<< Song End | +4m tail >>`});   // 곡 끝 + 뒤 여백 표시
+  evs.sort((a,b)=>a.tick-b.tick||(a.type==='tempo'?-2:a.type==='mark'?2:0));
+  let body=[],last=0;
+  const asc=s=>s.replace(/[^\x20-\x7E]/g,m=>({'♭':'b','＃':'#','—':'-'}[m]||'')); // 로직 마커는 ASCII가 안전
+  evs.forEach(e=>{body.push(...vlq(e.tick-last));last=e.tick;
+    if(e.type==='tempo'){const m=Math.round(60000000/e.bpm);body.push(0xFF,0x51,0x03,(m>>16)&255,(m>>8)&255,m&255);}
+    else if(e.type==='ks')body.push(0xFF,0x59,0x02,sf&0xFF,mi);
+    else if(e.type==='mark'){const b=sbm(asc(e.text)).slice(0,120);body.push(0xFF,0x06,b.length,...b);}   // FF 06 = Marker
+    else body.push(0xFF,0x58,0x04,M.num,M.dp,24,8);});
+  body.push(...vlq(Math.max(0,padT+Math.round(endQ*PPQ)+padT-last)),0xFF,0x2F,0x00);   // EOT를 곡 끝+4마디 뒤에 → 뒤 여백 확보
+  const NM=['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
+  const overview=`${state.style} ${NM[kpc]}${isMinor?'m':''} | ${state.sections.map(s=>s.type).join('-')}`;
+  const ob=sbm(overview.replace(/[^\x20-\x7E]/g,'')).slice(0,120),head=[...vlq(0),0xFF,0x03,ob.length,...ob];
+  return [...sbm('MTrk'),...u32(body.length+head.length),...head,...body];}
+function dl(tracks,name){const header=[...sbm('MThd'),...u32(6),...u16(1),...u16(tracks.length),...u16(480)];
+  const blob=new Blob([new Uint8Array([...header,...tracks.flat()])],{type:'audio/midi'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+/* ===== 요즘 트렌드 익스포트 트랙 =====
+   FX Cues(실제 노트): 큰 구간 진입 2마디 전 반음계 라이저 + 다운비트 임팩트(C2) + 서브드롭(C1) — 샘플로 교체할 위치·길이 가이드
+   ADD- 트랙(빈 트랙): 구현 불가한 사운드디자인 요소를 이름+용도로 슬롯화 — 로직에서 해당 악기를 그 트랙에 로드 */
+function sectionLabels(){        // 회차 번호·빌드 단계 포함 라벨(마커·분할 파일 공용)
+  const tot={},seen={};state.sections.forEach(sec=>{tot[sec.type]=(tot[sec.type]||0)+1;});
+  return state.sections.map((sec,i)=>{
+    seen[sec.type]=(seen[sec.type]||0)+1;
+    const num=tot[sec.type]>1?` ${seen[sec.type]}`:'';
+    const stg=(+sec.stage>=1)?` [Build ${Math.min(6,+sec.stage)}]`:(STYPES[sec.type]&&STYPES[sec.type].build?' [Build ramp]':'');
+    const chords=[];sec.grid.forEach(bar=>bar.forEach(c=>{if(c)chords.push(c);}));
+    const uniq=chords.filter((c,k)=>k===0||c!==chords[k-1]);
+    const prog=uniq.slice(0,8).join(' - ')+(uniq.length>8?' ...':'');
+    return {name:`${sec.type}${num}`,label:`${sec.type}${num} (${sec.grid.length}m)${stg} | ${prog||'-'}`};
+  });
+}
+function fxCueNotes(){
+  const out=[];if(!MODEL||!MODEL.sections.length)return out;
+  MODEL.sections.forEach((ms,i)=>{const sec=state.sections[i];if(!sec)return;
+    const big=(sec.type==='Chorus'||sec.type==='PostChorus'||(+sec.stage>=5));
+    if(!big)return;
+    const prev=state.sections[i-1];
+    const prevBig=prev&&(prev.type==='Chorus'||prev.type==='PostChorus'||(+prev.stage>=5));
+    if(i>0&&!prevBig){                                  // 라이저: 낮은 구간→큰 구간 진입에만
+      const q=METERS[secMeter(prev)].q,span=Math.min(2*q,ms.startQ),n=8,step=span/n;
+      for(let k=0;k<n;k++)out.push({t:ms.startQ-span+k*step,dur:step*0.9,midi:67+k,vel:Math.round(52+k*5)});
+    }
+    out.push({t:ms.startQ,dur:0.5,midi:36,vel:112});     // 임팩트 히트(C2)
+    out.push({t:ms.startQ,dur:2,midi:24,vel:96});        // 서브드롭(C1)
+  });
+  return out;
+}
+function extraGuideTracks(){
+  const st=state.style,cat=k=>CAT[k]&&CAT[k].includes(st);
+  if(['kpop','billie','motown'].includes(st)||cat('pop'))return ['ADD - Vocal Chops: PostChorus hook (pentatonic)','ADD - 808 Sub: Chorus roots w/ glide'];
+  if(ROCK.includes(st))return ['ADD - Gtr Double L+R: Chorus wall','ADD - Tambourine: Chorus 8ths'];
+  if(st==='funk')return ['ADD - Shaker+Conga: 16th groove layer','ADD - Horn Stabs: section ends'];
+  if(cat('folk'))return ['ADD - Shaker/Tambourine: Chorus lift','ADD - Fiddle or Whistle double'];
+  if(cat('oriental'))return ['ADD - Nature Ambience: stream/wind bed','ADD - Singing Bowl: section starts'];
+  return ['ADD - String Pad: final Chorus lift','ADD - BGV Stack: Chorus harmonies'];   // 발라드·워십·가스펠 등
+}
+function exportAll(){arrange();
+  const im=p=>instMeta(p);
+  const tr=[tempoTrack(),
+    noteTrack(MODEL.tracks.piano,0,im('piano').p,false,ped64(),im('piano').n),
+    noteTrack(MODEL.tracks.bass,1,im('bass').p,false,null,im('bass').n),
+    noteTrack(MODEL.tracks.guitar,2,im('guitar').p,false,null,im('guitar').n),
+    noteTrack(MODEL.tracks.drums,9,null,true,null,im('drums').n)];
+  const vocal=state.enabled.melody?MODEL.tracks.melody.filter(n=>!n.theme):[];
+  if(vocal.length)tr.push(noteTrack(vocal,4,im('melody').p,false,exprEvents(vocal),im('melody').n));
+  const lead=state.enabled.lead?MODEL.tracks.melody.filter(n=>n.theme):[];
+  if(lead.length)tr.push(noteTrack(lead,5,im('lead').p,false,exprEvents(lead),im('lead').n));
+  if(state.enabled.counter&&MODEL.tracks.counter.length)tr.push(noteTrack(MODEL.tracks.counter,7,im('counter').p,false,exprEvents(MODEL.tracks.counter),im('counter').n));
+  if(state.enabled.drone&&MODEL.tracks.drone.length)tr.push(noteTrack(MODEL.tracks.drone,6,im('drone').p,false,exprEvents(MODEL.tracks.drone),im('drone').n));
+  const fx=fxCueNotes();
+  if(fx.length)tr.push(noteTrack(fx,3,102,false,null,'FX Cues - Riser/Impact/Sub (swap w/ samples)'));
+  extraGuideTracks().forEach(nm=>tr.push(noteTrack([],8,null,false,null,nm)));   // 빈 가이드 트랙: 이름=악기+용도
+  dl(tr,`band_${state.style}_${MODEL.bpm}bpm.mid`);
+  downloadTxt(songSheet(),`band_${state.style}_${MODEL.bpm}bpm_송시트.txt`);
+  downloadTxt(logicGuide(),`band_${state.style}_${MODEL.bpm}bpm_로직가이드.txt`);}
+/* 로직 셋업 가이드 — 켜진 트랙에 맞춰 음원·이펙트·조합·명상 세팅을 체크리스트로 */
+function logicGuide(){
+  const med=state.enabled.drone||state.breathAlign,bpm=MODEL.bpm;
+  /* 안내: 파일 앞뒤 4마디 여백(라이저·리버스·잔향 편집 공간), 마커에 회차·빌드 단계 표기 */
+  const rec={
+    piano:{inst:med?'펠트 피아노 (Studio Piano 소프트 톤 / Spitfire LABS Soft Piano)':'Steinway Grand (Studio Piano)',fx:'ChromaVerb 롱테일 + EQ 로우컷(~200Hz) · Tape Delay 1/4'},
+    bass:{inst:med?'사인 서브베이스 (ES2·Retro Synth 순음)':'Electric/Upright Bass',fx:'저역 위주, 리버브 최소'},
+    guitar:{inst:med?'앰비언트/EBow 기타 (Sculpture 보드 스트링)':'Clean Electric (Amp Designer)',fx:'30ms 더블링 + Tape Delay + SilverVerb'},
+    drums:{inst:med?'(명상: 생략 권장) 소프트 퍼커션 · 필드레코딩 루프':'Drum Kit Designer',fx:'명상이면 톱컷 필터로 부드럽게'},
+    melody:{inst:'Sculpture 따뜻한 스트링 / 소프트 신스 리드 (명상은 최소화)',fx:'롱 리버브'},
+    lead:{inst:med?'하프 · 칼림바 · 글로켄슈필':'Flute / Pan Flute',fx:'핑퐁 딜레이 + 롱 리버브'},
+    drone:{inst:'Alchemy 그래뉼러/스펙트럴 패드 + 사인 서브 레이어',fx:'로우패스 모듈레이션 · 롱 리버브 (근음+5도+옥타브위 샤인 스택)'},
+    counter:{inst:'클린 일렉기타 / 소프트 신스 리드 (보컬 밑 카운터라인)',fx:'슬랩백 딜레이 + 살짝의 코러스, 패닝으로 멜로디와 분리'},
+  };
+  const L=[];
+  L.push('※ MIDI 앞뒤 4마디 여백 포함(편집 공간). 마커: 구조 회차(Verse 1/2, Chorus 1/2/3)와 [Build N] 단계 표기.');
+  L.push('');
+  L.push('──────── 요즘 트렌드 트랙 (2025-26) ────────');
+  L.push('· FX Cues 트랙(노트 있음): 코러스 진입 2마디 전 반음계 상승=라이저 자리 → 업리프터/화이트노이즈 스윕 샘플로 교체.');
+  L.push('  다운비트 C2=임팩트 샘플, C1=서브드롭 샘플 자리. 위치·길이 그대로 샘플만 갈아끼우면 됨.');
+  extraGuideTracks().forEach(nm=>L.push(`· ${nm} (빈 트랙): 이름의 악기를 이 트랙에 로드해 채우기.`));
+  L.push('  이유: 훅 앞 라이저·임팩트, 포스트코러스 보컬찹, 마지막 코러스 스택(BGV/현), 레이어 퍼커션이 요즘 프로덕션의 기본 장치.');
+  L.push('');
+  L.push('════════════════════════════════════════');
+  L.push('  BAND COMPOSER — 로직 셋업 가이드');
+  L.push('════════════════════════════════════════');
+  L.push(`스타일 ${state.style} · ${bpm}bpm${med?' · 🧘 사운드 명상 모드':''}`);
+  L.push('트랙 이름은 .mid 임포트 시 그대로 뜹니다 — 이름 보고 아래 음원으로 교체하세요.');
+  L.push('큰 원칙: ① 앵커(드론/서브) ② 오르가닉 텍스처 ③ 에어(고역 반짝임)를 겹치기.');
+  L.push('');
+  L.push('──────── 트랙별 음원 · 이펙트 ────────');
+  ['piano','bass','guitar','drums','melody','counter','lead','drone'].forEach(k=>{
+    const on=(k==='melody')?state.enabled.melody:(k==='lead')?state.enabled.lead:(k==='drone')?state.enabled.drone:(k==='counter')?state.enabled.counter:state.enabled[k];
+    if(!on)return;const m=instMeta(k),r=rec[k];
+    L.push(`• [${m.n}]`);L.push(`   음원 : ${r.inst}`);L.push(`   이펙트: ${r.fx}`);
+  });
+  L.push('');
+  L.push('──────── 새 소리를 만드는 조합 ────────');
+  L.push('1) 스테레오 더블링 — 파트 복제 후 한쪽 ~30ms 지연 + Tape Delay → 넓고 몽환적');
+  L.push('2) 음성·필드레코딩을 3~4배 타임스트레치 → Alchemy 그래뉼러로 패드화');
+  L.push('3) 드론 스택 — 근음 + 5도 + 옥타브 위 그래뉼러 샤인');
+  L.push('4) 모달(도리안·리디안) 보이싱으로 에테리얼한 색');
+  L.push('');
+  L.push('──────── 믹스 · 마감 ────────');
+  L.push('• 리버브 길게, 저역 롤오프(ChromaVerb/Space Designer + EQ 로우컷) — 안 뭉치게');
+  L.push('• 튜닝: 432Hz/528Hz 명상 튜닝(프로젝트 튜닝 조정) 고려');
+  L.push('• 다이내믹 최소 · 심리스 루프 · 스테레오 필드로 깊이');
+  if(med){
+    L.push('');
+    L.push('──────── 이 곡의 명상 설정 (앱 재생엔 반영, 로직 재현 팁) ────────');
+    if(state.breathAlign){const P=BREATH_PATTERNS[state.breathPattern];
+      L.push(`• 호흡: ${P?P.ko:'명상 4:6'} — 한 호흡이 정수 마디에 정렬(BPM ${bpm}).`);
+      L.push(`  로직 재현: 마스터 로우패스+게인을 들숨 ${P?P.in:4}s 열림/차오름 → 날숨 ${P?P.out:6}s 닫힘/잦아듦으로 오토메이션.`);}
+    if(state.enabled.drone)L.push('• 드론: 조 으뜸음(+5도) 지속 저음 → Alchemy 패드로 교체하면 그대로 명상 베드.');
+    L.push('• 인트로/아웃트로 분위기 모드: 필터 열림(빌드)/닫힘(페이드)이 구조·벨로시티에 반영됨.');
+  }
+  L.push('');
+  L.push('※ 앱 재생의 호흡 필터/음량·드론 음색은 재생 전용이라 MIDI엔 없습니다.');
+  L.push('  MIDI로 넘어가는 것: 음표·보이싱·조표·박자·템포·구간마커·트랙이름·페달(CC64)·익스프레션(CC11 롱톤 스웰: 멜로디·리드·대선율·드론).');
+  return L.join('\n');
+}
+/* 총보 머리말 형식 송시트 — 조성·구조·구간별 진행 + 타임스탬프 */
+function songSheet(){
+  const NM=['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'],kpc=keyPc(),sc=curPerf.scale;
+  let tonicCnt=0,minCnt=0;state.sections.forEach(s=>s.grid.forEach(b=>b.forEach(sym=>{if(!sym)return;const c=chordFromSym(sym);if(c&&c.pc===kpc){tonicCnt++;if(/^(min|dim)/.test(c.q))minCnt++;}})));
+  const isMinor=['aeolian','dorian','penta'].includes(sc)||(tonicCnt>0&&minCnt/tonicCnt>=0.5);
+  const keyName=NM[kpc]+(isMinor?' minor (단조)':' major (장조)');
+  const total=MODEL.totalSec,mmss=s=>`${Math.floor(s/60)}:${String(Math.round(s%60)).padStart(2,'0')}`;
+  const meter=globMeter(),bpms=[...new Set(MODEL.sections.map(s=>s.bpm))];
+  const L=[];
+  L.push('════════════════════════════════════════');
+  L.push(`  BAND COMPOSER — 송시트 (Score Header)`);
+  L.push('════════════════════════════════════════');
+  L.push(`스타일   : ${state.style}`);
+  L.push(`조성 Key : ${keyName}`);
+  L.push(`박자     : ${meter}`);
+  L.push(`템포     : ${bpms.length>1?bpms.map(b=>b+'bpm').join(', '):bpms[0]+' bpm'}`);
+  L.push(`전체 길이: ${mmss(total)} (${total.toFixed(1)}초, ${MODEL.sections.reduce((a,s,i)=>a+state.sections[i].grid.length,0)}마디)`);
+  L.push(`구조     : ${state.sections.map(s=>s.type).join(' → ')}`);
+  L.push('');
+  L.push('──────── 구간별 코드 진행 ────────');
+  const _tot={},_seen={};state.sections.forEach(sec=>{_tot[sec.type]=(_tot[sec.type]||0)+1;});
+  state.sections.forEach((sec,i)=>{const ms=MODEL.sections[i],bars=sec.grid.length;
+    _seen[sec.type]=(_seen[sec.type]||0)+1;
+    const num=_tot[sec.type]>1?` ${_seen[sec.type]}`:'';
+    const stg=(+sec.stage>=1)?`  ·  빌드 ${Math.min(6,+sec.stage)}단계`:(STYPES[sec.type]&&STYPES[sec.type].build?'  ·  빌드 램프':'');
+    L.push('');
+    L.push(`[${String(i+1).padStart(2,'0')}] ${sec.type}${num}  ·  ${bars}마디${stg}  ·  ${mmss(ms.startSec)}~${mmss(ms.startSec+(ms.endQ-ms.startQ)*ms.spq)}  ·  ${Math.round(ms.bpm)}bpm`);
+    sec.grid.forEach((bar,bi)=>{
+      const cells=bar.filter(c=>c).length?bar.map(c=>c||'·').join(' '):'· · · ·';
+      L.push(`   ${String(bi+1).padStart(2)}| ${cells}`);
+    });
+  });
+  L.push('');
+  L.push('※ MIDI 파일은 앞뒤 4마디 여백 포함 — 마커 "Edit space"~"Song End" 사이가 실제 곡');
+  L.push('※ FX Cues 트랙(라이저·임팩트·서브 자리) + ADD- 빈 트랙(추가 악기 슬롯) 포함 — 로직가이드 참고');
+  L.push('');
+  L.push('──────── 트랙 구성 (로직 임포트) ────────');
+  ['piano','bass','guitar','drums'].forEach(p=>{const m=instMeta(p);L.push(`  · ${m.n}`);});
+  if(state.enabled.melody)L.push(`  · ${instMeta('melody').n}`);
+  if(state.enabled.lead)L.push(`  · ${instMeta('lead').n}`);
+  if(state.enabled.counter)L.push(`  · ${instMeta('counter').n}`);
+  if(state.enabled.drone)L.push(`  · ${instMeta('drone').n}${state.breathAlign?` (호흡 ${state.breathRate}회/분 스웰)`:''}`);
+  L.push('');
+  L.push('※ MIDI 파일에는 조표·박자·템포·구간 마커(코드 진행 포함)가');
+  L.push('  컨덕터(글로벌) 트랙에 기록되어 있습니다.');
+  L.push('  로직: 보기 → 글로벌 트랙 → 마커/조표 를 켜면 표시됩니다.');
+  return L.join('\n');
+}
+function downloadTxt(text,name){const blob=new Blob([text],{type:'text/plain;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+/* ===== 호흡 정렬 템포: 분당 호흡수 → 한 호흡=N마디가 되도록 BPM 스냅(명상 범위 우선) ===== */
+function breathSnap(){
+  const P=BREATH_PATTERNS[state.breathPattern]||BREATH_PATTERNS.med;
+  const cyc=P.in+P.out,bpb=METERS[globMeter()].q;                       // 한 호흡 = 들숨+날숨 초
+  let best=null;for(const bars of [1,2,3,4,6,8]){const bpm=bars*bpb/cyc*60;if(bpm<35||bpm>92)continue;
+    const d=Math.abs(bpm-58);if(!best||d<best.d)best={bars,bpm,d};}
+  if(!best){best={bars:2,bpm:Math.max(35,Math.min(92,2*bpb/cyc*60)),d:0};}
+  const bpm=Math.round(best.bpm*10)/10;
+  $('bpm').value=bpm;
+  state.breathAlign=true;state.breathIn=P.in;state.breathOut=P.out;state.breathRate=60/cyc;
+  $('breathOut').textContent=`${P.ko} · 한 호흡 ${cyc}초=${best.bars}마디 · BPM ${bpm} (들숨 ${P.in}s/날숨 ${P.out}s)`;
+  updateRibbon();
+}
+function breathFit(){breathSnap();if(MODEL)playSection(state.active);}
+function exportOne(inst){arrange();const ch={piano:0,bass:1,guitar:2,drums:9,melody:4}[inst],m=instMeta(inst);
+  dl([tempoTrack(),noteTrack(MODEL.tracks[inst],ch,m.p,inst==='drums',inst==='piano'?ped64():null,m.n)],`band_${inst}_${MODEL.bpm}bpm.mid`);}
+
+/* ===== 저장 / 불러오기 / 도구 ===== */
+function transposeSong(d){state.sections.forEach(sec=>{sec.grid=sec.grid.map(b=>b.map(c=>c?transposeSym(c,d):c));sec.key=((secKey(sec)+d)%12+12)%12;});renderEditor();updateRibbon();}
+function setKey(newPc){newPc=((newPc%12)+12)%12;let d=newPc-prevKeyPc;if(d>6)d-=12;if(d<-6)d+=12;if(d)transposeSong(d);prevKeyPc=newPc;$('key').value=newPc;keyHintUpdate();}
+function modulateFrom(idx,targetPc){const d=targetPc-secKey(state.sections[idx]);if(!d)return;
+  for(let i=idx;i<state.sections.length;i++){const s=state.sections[i];s.grid=s.grid.map(b=>b.map(c=>c?transposeSym(c,d):c));s.key=((secKey(s)+d)%12+12)%12;}
+  renderEditor();updateRibbon();}
+function feelOf(d){const up=d>0,a=Math.abs(d);
+  const m={1:'반음 — 살짝 들뜨고 긴장이 더해져요',2:'온음 — 뚜렷한 고조, 라스트 코러스 리프트에 흔해요',3:'단3도 — 색이 확 바뀌는 드라마틱한 도약',4:'장3도 — 화사하게 밝아지는 느낌',5:'완전4도 — 안정적인 새 출발 같은 전환',7:'완전5도 — 한 단계 더 트인 느낌'}[a]||a+'반음';
+  return (up?'위 ▲ ':'아래 ▼ ')+m+(up?'':' (차분·묵직)');}
+function keyHintUpdate(){const el=$('keyHint');if(el)el.textContent='곡 조: '+NOTE[prevKeyPc]+' — 조를 올리면 더 밝고 들뜬, 내리면 차분·묵직한 느낌이에요.';}
+function serialize(){return{v:1,style:state.style,key:$('key').value,bpm:$('bpm').value,meter:$('meter').value,groove:$('groove').value,
+  connect:$('connect').checked,enabled:state.enabled,melSeed:state.melSeed,swing:state.swing,active:state.active,
+  humanize:state.humanize,pedal:state.pedal,humSeed:state.humSeed,voicing:state.voicing,advanced:state.advanced,introTheme:state.introTheme,introFull:state.introFull,soloPiano:state.soloPiano,droneFifth:state.droneFifth,breathPattern:state.breathPattern,breathAlign:state.breathAlign,modalMix:state.modalMix,arrDyn:state.arrDyn,targetSec:state.targetSec,sections:state.sections};}
+function applyState(o){if(!o||!o.sections)throw new Error('형식 오류');
+  state.style=o.style||'ballad';$('style').value=state.style;
+  if(o.key!=null){$('key').value=o.key;prevKeyPc=+o.key;}if(o.bpm!=null){$('bpm').value=o.bpm;}
+  if(o.meter)$('meter').value=o.meter;if(o.groove)$('groove').value=o.groove;
+  if(o.connect!=null)$('connect').checked=o.connect;
+  if(o.melSeed!=null)state.melSeed=o.melSeed;
+  if(o.humSeed!=null)state.humSeed=o.humSeed;
+  if(o.humanize!=null){state.humanize=o.humanize;const el=$('humanize');if(el)el.checked=o.humanize;}
+  if(o.pedal!=null){state.pedal=o.pedal;const el=$('pedal');if(el)el.checked=o.pedal;}
+  if(o.voicing!=null){state.voicing=o.voicing;const el=$('voicing');if(el)el.value=o.voicing;}
+  if(o.advanced!=null){state.advanced=o.advanced;const el=$('advanced');if(el)el.checked=o.advanced;}
+  if(o.introTheme!=null){state.introTheme=o.introTheme;const el=$('introTheme');if(el)el.checked=o.introTheme;}
+  if(o.introFull!=null){state.introFull=o.introFull;const el=$('introFull');if(el)el.checked=o.introFull;}
+  if(o.soloPiano!=null){state.soloPiano=o.soloPiano;const el=$('soloPiano');if(el)el.checked=o.soloPiano;}
+  if(o.droneFifth!=null){state.droneFifth=o.droneFifth;const el=$('droneFifth');if(el)el.checked=o.droneFifth;}
+  if(o.breathPattern!=null){state.breathPattern=o.breathPattern;const P=BREATH_PATTERNS[o.breathPattern];if(P){state.breathIn=P.in;state.breathOut=P.out;}const el=$('breathPattern');if(el)el.value=o.breathPattern;}
+  if(o.breathAlign!=null)state.breathAlign=o.breathAlign;
+  if(o.modalMix!=null){state.modalMix=o.modalMix;const el=$('modalMix');if(el)el.checked=o.modalMix;}
+  if(o.arrDyn!=null){state.arrDyn=o.arrDyn;const el=$('arrDyn');if(el)el.checked=o.arrDyn;}
+  if(o.swing!=null){state.swing=o.swing;$('swing').value=Math.round(o.swing*100);}
+  if(o.enabled){state.enabled=Object.assign({piano:true,bass:true,guitar:true,drums:true,melody:false,counter:false,lead:true,drone:false},o.enabled);
+    ['piano','bass','guitar','drums','melody','counter','lead','drone'].forEach(k=>{if(BUS[k])BUS[k].gain.value=state.enabled[k]?1:0;document.querySelector(`.ichip[data-k="${k}"]`)?.classList.toggle('on',state.enabled[k]);});
+    const dEl=$('droneOn');if(dEl)dEl.checked=!!state.enabled.drone;}
+  state.sections=o.sections;state.active=Math.min(o.active||0,state.sections.length-1);
+  state.targetSec=o.targetSec||null;
+  {const fm=$('fitMin'),fs=$('fitSec');if(fm)fm.value=state.targetSec?Math.floor(state.targetSec/60):'';if(fs)fs.value=state.targetSec?String(state.targetSec%60):'';}
+  renderEditor();updateRibbon();keyHintUpdate();$('panel2').classList.remove('collapsed');}
+function flashMsg(t){const el=$('saveMsg');const old=el.textContent;el.textContent=t;setTimeout(()=>{el.textContent=old;},2200);}
+const LS_KEY='bandcomposer_song_v1';
+function saveLocal(){try{localStorage.setItem(LS_KEY,JSON.stringify(serialize()));flashMsg('저장됐어요 ✓');}catch(e){flashMsg('저장 실패: 브라우저 저장이 막혀 있어요. .json 내보내기를 쓰세요.');}}
+function loadLocal(){try{const s=localStorage.getItem(LS_KEY);if(!s){flashMsg('저장된 곡이 없어요.');return;}applyState(JSON.parse(s));flashMsg('불러왔어요 ✓');}catch(e){flashMsg('불러오기 실패: '+e.message);}}
+function exportJSON(){const blob=new Blob([JSON.stringify(serialize(),null,1)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`band_${state.style}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+function importJSON(file){const r=new FileReader();r.onload=()=>{try{applyState(JSON.parse(r.result));flashMsg('가져왔어요 ✓');}catch(e){flashMsg('가져오기 실패: '+e.message);}};r.readAsText(file);}
+
+/* ===== 바인딩 ===== */
+$('bpm').oninput=()=>updateRibbon();$('bpm').onchange=()=>updateRibbon();
+$('swing').oninput=e=>{state.swing=Math.max(0,Math.min(100,+e.target.value||0))/100;};
+$('key').onchange=e=>setKey(+e.target.value);$('meter').onchange=e=>{if(META_GROOVE[e.target.value])$('groove').value=META_GROOVE[e.target.value];renderEditor();updateRibbon();};$('groove').onchange=()=>{$('styleHint').textContent=curStyle().hint+'  · 기본 그루브: '+GROOVES[grooveId()].name;};
+$('style').onchange=e=>{state.style=e.target.value;applyStyleDefaults(false);renderEditor();updateRibbon();
+  $('panel2').classList.remove('collapsed');};
+$('addSec').onclick=()=>{const s={type:'Chorus',meter:'inherit',groove:'inherit',grid:[['']]};s._lastProg=0;fillGrid(s,curStyle().pool[0]);state.sections.push(s);state.active=state.sections.length-1;renderEditor();updateRibbon();};
+$('reroll').onclick=()=>{assignByType(true);renderEditor();updateRibbon();$('panel2').classList.remove('collapsed');};
+$('modalMix').onchange=e=>{state.modalMix=e.target.checked;if(MODEL){assignByType(true);renderEditor();updateRibbon();$('panel2').classList.remove('collapsed');if(playing)playSection(state.active);}};
+$('arrDyn').onchange=e=>{state.arrDyn=e.target.checked;if(MODEL){arrange();if(playing)playSection(state.active);}};
+/* ===== 앱 내 장르별 조합 가이드 ===== */
+const GUIDE_FAM=[
+  {label:'발라드 · 감성',items:['ballad','jballad','neosoul','gospel','worship']},
+  {label:'J-Pop · 시티팝',items:['royalroad','marusa','komuro']},
+  {label:'록 · 밴드',items:['animerock','poppunk','ukpop']},
+  {label:'팝 · 댄스',items:['kpop','billie','motown']},
+  {label:'펑크 · 그루브',items:['funk']},
+  {label:'포크 · 컨트리',items:['celtic','country','countrypop']},
+  {label:'동양 · 사운드 명상',items:['saguk']},
+  {label:'오케스트라 · 시네마틱',items:['epic','animeost']},
+];
+const GUIDE={
+  epic:{mark:'p→ff',accent:'hi',combo:[['편곡 다이내믹','core'],['대선율'],['드론(약)'],['고급 연주']],feel:'단조 모달(i–bVI–bVII) 위 저현 오스티나토 + 브라스 히트 + 팀파니·탐탐. 벌스를 비웠다가 코러스에서 대편성이 전면전 — 트레일러 문법. CC11 스웰이 현·혼을 살아 숨쉬게.',tip:'로직에서 트랙명대로 현·브라스·혼·오케 퍼커션을 로딩하면 그대로 예고편 오케. 드럼 트랙은 팀파니+그란카사+탐탐으로 해석.'},
+  animeost:{mark:'mp→ff',accent:'med',combo:[['보이싱 러시','core'],['대선율'],['도미넌트 연결'],['고급 연주']],feel:'장조의 벅찬 대편성 — 현 소어링 주선율, 프렌치 혼 카운터, 왕도 계열 진행의 감정 드라마. 마지막 코러스 리프트가 히사이시식 절정을.',tip:'멜로디=바이올린 섹션, 대선율=혼. 목관(플루트) 테마는 인트로/아웃트로 리드 트랙에.'},
+  ballad:{mark:'p→mf',accent:'',combo:[['편곡 다이내믹','core'],['보이싱 컬러'],['페달'],['대선율(약)']],feel:'벌스는 피아노만 남겨 비우고, 코러스에서 밴드가 차오르는 <b>눈물의 스웰</b>. 컬러 보이싱의 9·6 텐션이 촉촉함을, 페달이 잔향을 줍니다.',tip:'차용화음을 살짝 켜면 IV→iv의 \u2018슬픈 4도\u2019가 후렴 직전에 뭉클함을 더합니다.'},
+  jballad:{mark:'p',combo:[['보이싱 재즈'],['도미넌트 연결','core'],['고급 연주'],['차용화음']],feel:'세컨더리 도미넌트·반감7·감7 경과화음의 우수. <b>도미넌트 연결</b>이 구간을 매끄럽게 잇고, 재즈 보이싱이 경과화음의 색을 살립니다.',tip:'템포를 살짝 내리고 페달을 길게 — 화성 이동이 또렷하게 들립니다.'},
+  neosoul:{mark:'mp',combo:[['보이싱 재즈'],['사람처럼','core'],['페달'],['대선율']],feel:'9th·maj7의 재지한 ii–V가 느슨하게 흐르는 무드. <b>사람처럼</b>의 타이밍 흔들림이 그루브의 끈적함을 만들고, 대선율이 로즈 밑을 감쌉니다.',tip:'로직에서 피아노를 로즈(FM EP)로 바꾸면 곧장 네오소울.'},
+  gospel:{mark:'f',combo:[['보이싱 재즈/컬러'],['도미넌트 연결','core'],['고급 연주']],feel:'경과 감7·세컨더리 도미넌트와 트리플렛의 충만함. 풀밴드로 두껍게, 도미넌트 연결로 화성이 계단처럼 상승.',tip:'편곡 다이내믹은 끄고 처음부터 꽉 채우는 편이 가스펠답습니다.'},
+  worship:{mark:'mp→f',combo:[['보이싱 컬러'],['편곡 다이내믹','core'],['분위기 인트로']],feel:'1–5–6–4에 sus·add 컬러. 분위기 인트로로 조용히 열고, 편곡 다이내믹으로 벌스→코러스 빌드를 크게. 브릿지 뒤 마지막 코러스에서 터지는 아치.',tip:'구조 랜덤에서 코러스 반복 폼이 워십에 잘 맞습니다.'},
+  royalroad:{mark:'mf',combo:[['보이싱 자동'],['대선율'],['편곡 다이내믹'],['구조 랜덤']],feel:'밝으면서 애틋한 일본 대중가요 정석. 대선율이 훅을 이중으로, 구조 랜덤의 포스트코러스가 요즘 감각을 더합니다.',tip:'대선율을 옥타브 위 신스로 더블링하면 애니송 느낌.'},
+  marusa:{mark:'mp',accent:'med',combo:[['차용화음','core'],['보이싱 재즈'],['대선율'],['사람처럼']],feel:'\u2018Just the Two of Us\u2019 진행의 세련된 우수. <b>차용화음</b>이 핵심 — iv·bVII가 도시적 노을빛. 재즈 보이싱+대선율로 완연한 시티팝.',tip:'이 앱에서 가장 \u2018세련된\u2019 소리가 나는 지점. 로직에서 클린 기타+코러스/딜레이.'},
+  komuro:{mark:'f',combo:[['보이싱 자동'],['편곡 다이내믹'],['구조 랜덤(드롭)']],feel:'질주하는 vi–IV–V–I. 드롭 구조로 빌드업→코러스의 쾌감, 편곡 다이내믹이 온도차를 벌립니다.',tip:'대선율보다 편곡 대비가 추진력을 살립니다.'},
+  animerock:{mark:'ff',accent:'hi',combo:[['대선율','core'],['모던 구조(콜드오픈)'],['편곡 다이내믹'],['보이싱 클린']],feel:'어둡고 강렬한 단조 앤섬. 콜드오픈으로 훅 먼저, 대선율이 기타 리프처럼 벌스를 채웁니다. 록이라 벌스를 비워도 <b>기타는 유지</b>돼 추진력이 안 죽습니다.',tip:'대선율을 디스토션 기타로 바꾸면 그대로 리드 리프.'},
+  poppunk:{mark:'ff',accent:'hi',combo:[['대선율'],['편곡 다이내믹'],['모던 구조']],feel:'질주하는 파워코드 위 밝은 4코드. 편곡 대비로 벌스에 잠깐 숨을 주면 코러스가 더 터집니다.',tip:'스윙 0 유지. 곧게 달리는 8비트가 생명.'},
+  ukpop:{mark:'mf',combo:[['차용화음','core'],['대선율'],['보이싱 자동']],feel:'믹솔리디안 bVII·차용 iv·add9의 잰글이 스타일에 배어 있음. 차용화음을 더 켜면 그 색이 짙어집니다.',tip:'add9 오픈코드는 12현 어쿠스틱/잰글 기타로.'},
+  kpop:{mark:'mf→ff',accent:'hi',combo:[['구조 랜덤(포스트코러스)','core'],['차용화음','core'],['대선율'],['편곡 다이내믹']],feel:'이 앱에서 가장 \u2018요즘\u2019인 조합. 기본 구조가 포스트코러스라 코러스 뒤 훅이 붙고, 차용화음의 전조·단조 앤섬 색까지. 콜드오픈 훅→비운 벌스→터지는 코러스가 한 곡에.',tip:'네 기능을 다 켜도 무너지지 않게 설계됨. K-Pop이 이 조합의 쇼케이스.'},
+  billie:{mark:'pp→mp',accent:'med',combo:[['보이싱 재즈'],['편곡 다이내믹','core'],['분위기'],['드론(약)','med']],feel:'단조·감화음 경과·확장화음의 어둡고 <b>성긴</b> 사운드. 편곡 다이내믹으로 최대한 비우고, 드론을 약하게 깔면 저역의 긴장이 생깁니다.',tip:'악기를 많이 끄고 여백을 크게 — \u2018덜어냄\u2019이 미학.'},
+  motown:{mark:'mf',combo:[['보이싱 컬러'],['대선율'],['차용화음(I7)']],feel:'두왑 진행 + 또렷한 백비트. 차용화음의 I7(블루지 도미넌트)이 소울의 색을, 대선율이 혼 섹션 같은 답을.',tip:'대선율을 브라스로 바꾸면 모타운 혼 라인.'},
+  funk:{mark:'mf',combo:[['보이싱 재즈'],['사람처럼','core'],['대선율'],['차용화음(I7)']],feel:'정적 코드 위 9th + 16비트 신코페이션. <b>사람처럼</b>의 미세 타이밍이 그루브의 생명, 대선율이 커팅 기타처럼 빈 곳을 찌릅니다.',tip:'스윙 10~20%를 주면 16비트가 더 끈적.'},
+  celtic:{mark:'mp',accent:'med',combo:[['드론','med core'],['보이싱 클린'],['대선율']],feel:'믹솔리디안 bVII·도리안·오픈(sus) 코드. <b>드론</b>이 자연스럽게 맞습니다 — 백파이프 지속저음. 대선율이 휘슬 같은 답 선율을.',tip:'드론은 켈틱에선 명상용이 아니라 \u2018악기\u2019. 로직에서 피들·휘슬.'},
+  country:{mark:'mf',combo:[['보이싱 클린'],['대선율'],['사람처럼']],feel:'또렷한 I–IV–V 메이저. 담백함이 미덕이라 텐션을 빼고 클린 보이싱으로. 대선율이 슬라이드 기타/피들 답을.',tip:'차용화음은 자제 — 담백한 3코드가 아메리카나의 정직함.'},
+  countrypop:{mark:'mf',combo:[['보이싱 자동'],['편곡 다이내믹'],['대선율']],feel:'어쿠스틱 잰글 위 I–V–vi–IV, add9 오픈코드. 편곡 다이내믹으로 벌스는 어쿠스틱만, 코러스에서 밴드가 붙는 아치.',tip:'add9 오픈코드는 카포 낀 어쿠스틱으로.'},
+  saguk:{mark:'pp→p',accent:'med',combo:[['드론','med core'],['호흡','med'],['분위기'],['펜타토닉']],feel:'에이올리안·펜타토닉·드론의 동양적 사극 OST. 드론의 지속저음 위에 펜타토닉 선율. 국악 지속저음 감각과 바로 통하는 지점.',tip:'리드(테마)를 로직에서 대금·해금·피리로 바꾸면 사극 색이 완성.'},
+};
+const GUIDE_LEGEND=[
+  ['🎲 작곡/랜덤','스타일 구조·진행 생성. 구조 랜덤은 모던 폼(콜드오픈·포스트코러스·드롭)까지.'],
+  ['보이싱','자동/클린/컬러(9·6 텐션)/재즈(루트리스) — 화음의 두께·색.'],
+  ['차용화음','모달 인터체인지 iv·bVII·bVI로 팝록·시티팝 색. MIDI 반영.'],
+  ['편곡 다이내믹','벌스 비우고 코러스 채우는 텍스처 대비. MIDI 반영.'],
+  ['🎸 대선율','보컬 쉼표를 메우는 코드톤 카운터라인. 독립 트랙, MIDI 반영.'],
+  ['🎣 훅 엔진','코러스 2마디 모티프가 A–A–B–A로 반복, 모든 코러스에 동일 재등장 + 마지막 코러스는 한 단계 리프트. 벌스=대비 리듬·저역, 프리=상승, 포스트=챈트. MIDI 반영.'],
+  ['🧘 드론·호흡','지속 저음 패드 + 호흡 리듬 믹스. 드론은 트랙, 호흡 필터·음량은 재생 전용.'],
+  ['📶 빌드업 단계','구간마다 1 여백 → 6 클라이맥스 단계 지정. 악기 진입·드럼 밀도·셈여림이 단계로 변함(장르별 진입 순서 다름). MIDI 반영.'],
+];
+const GUIDE_APPLY={
+  ballad:{voicing:'lush',arrDyn:1,pedal:1,advanced:1,counter:1,arc:'wave'},
+  epic:{voicing:'lush',arrDyn:1,counter:1,drone:1,advanced:1,arc:'rise'},
+  animeost:{voicing:'lush',arrDyn:1,counter:1,advanced:1,connect:1,arc:'wave'},
+  jballad:{voicing:'jazz',connect:1,advanced:1,modalMix:1},
+  neosoul:{voicing:'jazz',humanize:1,pedal:1,counter:1},
+  gospel:{voicing:'jazz',connect:1,advanced:1},
+  worship:{voicing:'lush',arrDyn:1,introTheme:0,arc:'rise'},
+  royalroad:{voicing:'auto',counter:1,arrDyn:1,form:'postchorus'},
+  marusa:{voicing:'jazz',modalMix:1,counter:1,humanize:1},
+  komuro:{voicing:'auto',arrDyn:1,form:'drop',arc:'drop'},
+  animerock:{voicing:'clean',counter:1,arrDyn:1,form:'coldopen',arc:'wave'},
+  poppunk:{voicing:'auto',counter:1,arrDyn:1,form:'doublehook'},
+  ukpop:{voicing:'auto',modalMix:1,counter:1},
+  kpop:{voicing:'auto',modalMix:1,counter:1,arrDyn:1,form:'postchorus',arc:'frontload'},
+  billie:{voicing:'jazz',arrDyn:1,introTheme:0,drone:1,arc:'calm'},
+  motown:{voicing:'lush',counter:1,modalMix:1},
+  funk:{voicing:'jazz',humanize:1,counter:1,modalMix:1},
+  celtic:{voicing:'clean',drone:1,counter:1},
+  country:{voicing:'clean',counter:1,humanize:1},
+  countrypop:{voicing:'auto',arrDyn:1,counter:1},
+  saguk:{drone:1,breath:'med',introTheme:0,arc:'calm'},
+};
+function applySpec(a,styleId){
+  a=a||{};
+  if(styleId){$('style').value=styleId;state.style=styleId;}
+  applyStyleDefaults(false);                                            // 스타일 기본(구조·템포·리듬·코드)
+  if(a.voicing){state.voicing=a.voicing;const el=$('voicing');if(el)el.value=a.voicing;}
+  const setB=(elId,stKey)=>{if(!(stKey in a))return;const on=!!a[stKey];state[stKey]=on;const el=$(elId);if(el)el.checked=on;};
+  setB('modalMix','modalMix');setB('arrDyn','arrDyn');setB('humanize','humanize');setB('pedal','pedal');setB('advanced','advanced');setB('introTheme','introTheme');setB('soloPiano','soloPiano');
+  if('connect'in a){const el=$('connect');if(el)el.checked=!!a.connect;}
+  if('swing'in a){state.swing=a.swing;const el=$('swing');if(el)el.value=Math.round(a.swing*100);}
+  const setInst=(k,on)=>{state.enabled[k]=!!on;if(BUS[k]&&ctx){BUS[k].gain.cancelScheduledValues(ctx.currentTime);BUS[k].gain.setTargetAtTime(on?1:0,ctx.currentTime,0.02);}else if(BUS[k])BUS[k].gain.value=on?1:0;document.querySelector(`.ichip[data-k="${k}"]`)?.classList.toggle('on',!!on);};
+  if('counter'in a)setInst('counter',a.counter);
+  if('drone'in a){setInst('drone',a.drone);const cb=$('droneOn');if(cb)cb.checked=!!a.drone;}
+  if(a.form&&FORMS[a.form]){const sid=state.style,rock=ROCK.includes(sid),energetic=!GENTLE_INTRO[sid];state.active=0; // 모던 구조 지정 시 구조 교체
+    state.sections=FORMS[a.form].map(([type,bars])=>({type,meter:'inherit',groove:grooveForType(type,rock,energetic),grid:Array.from({length:bars},()=>[''])}));}
+  assignByType(false);                                                  // 차용화음 반영해 코드 채우기
+  if(a.breath){state.breathPattern=a.breath;const bp=$('breathPattern');if(bp)bp.value=a.breath;breathSnap();} // 호흡: BPM 스냅 먼저(길이 계산 전)
+  if(state.targetSec)fitToDuration(state.targetSec);                    // 시간 최우선: 레시피 적용 후에도 목표 길이 유지
+  if(a.arc)buildupArc(a.arc);else state.sections.forEach(sec=>{sec.stage=0;});   // 빌드업 아치(맞춤 구조 위에 배치)
+  renderEditor();updateRibbon();closeGuide();$('panel2').classList.remove('collapsed');
+  if(playing)playSection(state.active);
+}
+function applyGuide(id){applySpec(GUIDE_APPLY[id],id);}
+/* 스타일 카테고리 */
+const CAT={ballad:['ballad','jballad','neosoul','gospel','worship'],jpop:['royalroad','marusa','komuro'],
+  rock:['animerock','poppunk','ukpop'],pop:['kpop','billie','motown'],funk:['funk'],folk:['celtic','country','countrypop'],oriental:['saguk'],orchestra:['epic','animeost']};
+/* 조합 레시피 풀 — 각 레시피가 어울리는 카테고리/스타일(fit) 태그를 가짐 */
+const RECIPES=[
+  {ko:'🎯 훅 중심',feel:'코러스와 포스트코러스 훅을 겹치고 대선율로 이중 훅. 후렴이 계속 귀에 남는 요즘 팝 구성.',combo:[['훅 구조','core'],['대선율'],['편곡 다이내믹']],apply:{form:'doublehook',counter:1,arrDyn:1,voicing:'auto',arc:'frontload'},fit:['pop','jpop','rock','orchestra']},
+  {ko:'🌌 여백·미니멀',feel:'벌스를 크게 비우고 코러스만 채워 공간감. 클린 보이싱과 덜어냄의 미학.',combo:[['편곡 다이내믹','core'],['보이싱 클린'],['분위기']],apply:{arrDyn:1,counter:0,voicing:'clean',introTheme:0,arc:'calm'},fit:['ballad','oriental','billie','orchestra']},
+  {ko:'💗 감정 고조',feel:"차용화음의 '슬픈 4도'와 컬러 텐션 위에, 벌스→코러스 빌드로 뭉클하게 고조.",combo:[['보이싱 컬러'],['차용화음','core'],['편곡 다이내믹'],['고급 연주']],apply:{voicing:'lush',arrDyn:1,advanced:1,modalMix:1,arc:'rise'},fit:['ballad','jpop','pop','folk','orchestra']},
+  {ko:'🌊 몽환·앰비언트',feel:'드론과 호흡으로 곡 전체가 숨쉬는 몽환적 텍스처. 재즈 보이싱의 확장화음이 부유감을.',combo:[['드론','med core'],['호흡','med'],['분위기'],['보이싱 재즈']],apply:{drone:1,breath:'med',introTheme:0,voicing:'jazz',arc:'calm'},fit:['ballad','oriental','jpop','billie']},
+  {ko:'🕺 그루비',feel:'타이밍 흔들림(사람처럼)과 커팅 대선율, 살짝의 스윙으로 끈적한 그루브.',combo:[['사람처럼','core'],['보이싱 재즈'],['대선율'],['스윙']],apply:{voicing:'jazz',humanize:1,counter:1,swing:0.14},fit:['funk','motown','neosoul','marusa','gospel']},
+  {ko:'✨ 세련·시티팝',feel:'빌린 화음(iv·bVII)과 재즈 보이싱으로 도시적 노을빛. 대선율이 기타 카운터라인.',combo:[['보이싱 재즈'],['차용화음','core'],['대선율']],apply:{voicing:'jazz',modalMix:1,counter:1},fit:['jpop','funk','pop','neosoul']},
+  {ko:'🎸 밴드 풀',feel:'콜드오픈 훅으로 시작해 대선율·편곡 대비까지, 밴드가 꽉 찬 요즘 팝록.',combo:[['콜드오픈','core'],['대선율'],['편곡 다이내믹']],apply:{form:'coldopen',counter:1,arrDyn:1,voicing:'auto',arc:'wave'},fit:['rock','pop','jpop']},
+  {ko:'🧘 명상',feel:'긴 날숨(4:8) 호흡에 지속저음 드론, 선율 없는 분위기 양 끝. 명상 트랙 골격.',combo:[['드론','med core'],['긴 날숨 호흡','med'],['분위기']],apply:{drone:1,breath:'longout',introTheme:0,voicing:'clean',arc:'calm'},fit:['oriental','ballad','billie']},
+  {ko:'🎹 재지 발라드',feel:'재즈 보이싱 + 도미넌트 연결로 경과화음이 매끄럽게 흐르는 어른의 발라드.',combo:[['보이싱 재즈'],['도미넌트 연결','core'],['고급 연주'],['페달']],apply:{voicing:'jazz',connect:1,advanced:1,pedal:1},fit:['ballad','jpop']},
+  {ko:'🔥 드라이브',feel:'드롭 구조로 빌드업→코러스의 추진력. 대선율이 기타 리프처럼 몰아칩니다.',combo:[['드롭 구조','core'],['대선율'],['편곡 다이내믹']],apply:{form:'drop',counter:1,arrDyn:1,voicing:'clean',arc:'drop'},fit:['rock','pop','komuro']},
+  {ko:'🌾 어쿠스틱 여백',feel:'클린 보이싱 + 편곡 대비 + 사람처럼. 벌스는 어쿠스틱만, 코러스에서 밴드가.',combo:[['보이싱 클린'],['편곡 다이내믹','core'],['사람처럼']],apply:{voicing:'clean',arrDyn:1,humanize:1},fit:['folk','ballad','countrypop']},
+  {ko:'🌑 다크·성긴',feel:'재즈 보이싱 + 강한 편곡 대비 + 약한 드론. 어둡고 성긴 저역의 긴장.',combo:[['보이싱 재즈'],['편곡 다이내믹','core'],['드론','med'],['분위기']],apply:{voicing:'jazz',arrDyn:1,drone:1,introTheme:0},fit:['billie','animerock','oriental']},
+  {ko:'🎺 소울 그루브',feel:'컬러 보이싱 + I7 차용 + 대선율(혼 섹션). 두왑·모타운의 따뜻한 소울.',combo:[['보이싱 컬러'],['차용화음','core'],['대선율']],apply:{voicing:'lush',modalMix:1,counter:1},fit:['motown','gospel','funk','neosoul']},
+  {ko:'🌈 모달 컬러',feel:'차용화음(iv·bVII·bVI)을 짙게 + 컬러 보이싱. 예상 밖 색이 도는 진행.',combo:[['차용화음','core'],['보이싱 컬러'],['도미넌트 연결']],apply:{modalMix:1,voicing:'lush',connect:1},fit:['jpop','ukpop','funk','pop','folk']},
+  {ko:'🎙 라이브 밴드',feel:'사람처럼 + 고급 연주 + 대선율. 편곡을 비우지 않고 밴드가 처음부터 함께 연주.',combo:[['사람처럼','core'],['고급 연주'],['대선율']],apply:{humanize:1,advanced:1,counter:1,arrDyn:0},fit:['rock','funk','folk','jpop','gospel']},
+  {ko:'🌙 앰비언트 드론',feel:'코히런트 호흡(5:5)에 지속저음 드론 + 클린 보이싱. 새벽의 앰비언트.',combo:[['드론','med core'],['코히런트 호흡','med'],['분위기']],apply:{drone:1,breath:'coherent',introTheme:0,voicing:'clean',arc:'calm'},fit:['oriental','ballad','billie','celtic','orchestra']},
+];
+function recipeFits(r,styleId){return r.fit.some(f=>f===styleId||(CAT[f]&&CAT[f].includes(styleId)));}
+/* 장르 특화 레시피 — 각 장르 고유의 색. 추천 시 먼저 노출됨 */
+const RECIPES_SPEC=[
+  // 오케스트라
+  {ko:'🛡 트레일러 히트',feel:'하프타임 위 브라스 파워 히트 + 팀파니 + 저역 페달. 벌스를 비우고 코러스에서 전면전 — 어벤져스류 예고편 문법.',combo:[['편곡 다이내믹','core'],['대선율'],['드론(약)']],apply:{arrDyn:1,counter:1,drone:1,arc:'rise'},fit:['epic']},
+  {ko:'🌊 다크 오스티나토',feel:'저현 8분 오스티나토가 긴장을 끌고, 혼 카운터가 넓게 응답. bVI–bVII 모달 루프의 어두운 장엄함.',combo:[['보이싱 러시'],['대선율','core'],['고급 연주']],apply:{voicing:'lush',counter:1,advanced:1},fit:['epic']},
+  {ko:'⚔ 클라이맥스 리프트',feel:'마지막 코러스 훅 리프트 + 최대 밀도 + 탐탐. 트레일러의 마지막 20초.',combo:[['훅 구조','core'],['편곡 다이내믹'],['고급 연주']],apply:{arrDyn:1,advanced:1,arc:'frontload'},fit:['epic']},
+  {ko:'🕊 소어링 스트링',feel:'현이 높이 나는 주선율 + 혼의 대선율 + 목관 색채. 장조의 벅참 — 히사이시 결.',combo:[['보이싱 러시','core'],['대선율'],['고급 연주']],apply:{voicing:'lush',counter:1,advanced:1},fit:['animeost']},
+  {ko:'🔥 열혈 마르카토',feel:'마르카토 현 블록 + 브라스 스탭 + 심벌 타격. 배틀 애니 OST의 추진력.',combo:[['편곡 다이내믹','core'],['대선율'],['도미넌트 연결']],apply:{arrDyn:1,counter:1,connect:1},fit:['animeost']},
+  {ko:'🌸 서정 왕도',feel:'IVM7–V–iii–vi 위로 흐르는 현. 눈물샘 애니 엔딩의 감정선.',combo:[['도미넌트 연결','core'],['보이싱 컬러'],['고급 연주']],apply:{connect:1,voicing:'color',advanced:1},fit:['animeost']},
+  // 발라드·감성
+  {ko:'🎻 오케스트럴 발라드',feel:'컬러 보이싱에 도미넌트 연결·고급 연주로 현악이 차오르는 대편성. 벌스→코러스로 크게 부풀어.',combo:[['보이싱 컬러'],['도미넌트 연결','core'],['고급 연주'],['편곡 다이내믹']],apply:{voicing:'lush',connect:1,advanced:1,arrDyn:1},fit:['ballad']},
+  {ko:'🕯 미니멀 피아노',feel:'솔로 피아노 + 클린 + 여백. 목소리와 건반만 남긴 담백한 발라드.',combo:[['솔로 피아노','core'],['보이싱 클린'],['편곡 다이내믹']],apply:{soloPiano:1,voicing:'clean',arrDyn:1},fit:['ballad','jballad']},
+  {ko:'🎹 네오소울 무드',feel:'재즈 보이싱의 9th·maj7 위 사람처럼 흔들리는 그루브 + 대선율. 로즈 감성.',combo:[['보이싱 재즈'],['사람처럼','core'],['대선율'],['페달']],apply:{voicing:'jazz',humanize:1,counter:1,pedal:1},fit:['neosoul','gospel']},
+  // J-Pop·시티팝
+  {ko:'🌆 시티팝 나이트드라이브',feel:'재즈 보이싱 + 차용화음(iv·bVII) + 대선율 + 살짝의 스윙. 네온 흐르는 밤 드라이브.',combo:[['보이싱 재즈'],['차용화음','core'],['대선율'],['스윙']],apply:{voicing:'jazz',modalMix:1,counter:1,swing:0.1},fit:['marusa','jpop']},
+  {ko:'🎌 로열로드 정석',feel:'밝고 애틋한 왕도 진행에 도미넌트 연결·대선율·편곡 대비. 정통 J-Pop 훅.',combo:[['도미넌트 연결','core'],['대선율'],['편곡 다이내믹']],apply:{voicing:'auto',connect:1,counter:1,arrDyn:1},fit:['royalroad','jpop']},
+  {ko:'⚡ 90s 질주 팝',feel:'드롭 구조 + 편곡 대비로 vi–IV–V–I가 질주. 빌드업→코러스의 쾌감.',combo:[['드롭 구조','core'],['편곡 다이내믹'],['대선율']],apply:{form:'drop',arrDyn:1,counter:1,voicing:'auto'},fit:['komuro','jpop']},
+  // 록·밴드
+  {ko:'🤘 단조 앤섬 록',feel:'콜드오픈 + 클린 보이싱 + 대선율(리프) + 편곡 대비. 어둡고 강렬한 록 앤섬.',combo:[['콜드오픈','core'],['대선율'],['편곡 다이내믹']],apply:{form:'coldopen',voicing:'clean',counter:1,arrDyn:1},fit:['animerock','rock']},
+  {ko:'🎸 잰글 브릿팝',feel:'차용화음(bVII·iv) + add9 잰글 + 대선율. 믹솔리디안 기타 팝.',combo:[['차용화음','core'],['대선율'],['보이싱 자동']],apply:{modalMix:1,voicing:'auto',counter:1},fit:['ukpop','rock']},
+  {ko:'💥 질주 팝펑크',feel:'훅 구조 + 사람처럼 + 대선율. 파워코드 위 밝은 4코드가 곧게 달림.',combo:[['훅 구조','core'],['사람처럼'],['대선율']],apply:{form:'doublehook',humanize:1,counter:1,voicing:'auto'},fit:['poppunk','rock']},
+  // 팝·댄스
+  {ko:'🎇 K-Pop 전조 앤섬',feel:'포스트코러스 훅 + 차용화음 전조색 + 대선율 + 편곡 대비. 요즘 K-Pop 문법 총집합.',combo:[['포스트코러스','core'],['차용화음','core'],['대선율'],['편곡 다이내믹']],apply:{form:'postchorus',modalMix:1,counter:1,arrDyn:1,arc:'frontload'},fit:['kpop','pop']},
+  {ko:'🌃 다크 트랩팝',feel:'재즈 보이싱 + 강한 여백 + 약한 드론. 성긴 저역의 다크 팝.',combo:[['보이싱 재즈'],['편곡 다이내믹','core'],['드론','med'],['분위기']],apply:{voicing:'jazz',arrDyn:1,drone:1,introTheme:0},fit:['billie','pop']},
+  {ko:'💃 모타운 소울',feel:'컬러 보이싱 + I7 차용 + 대선율(혼) + 스윙. 백비트 위 따뜻한 소울.',combo:[['보이싱 컬러'],['차용화음','core'],['대선율'],['스윙']],apply:{voicing:'lush',modalMix:1,counter:1,swing:0.08},fit:['motown','pop']},
+  // 펑크·그루브
+  {ko:'🕺 16비트 컷',feel:'재즈 보이싱 + 사람처럼 + 커팅 대선율 + 스윙. 끈적한 16비트 그루브.',combo:[['보이싱 재즈'],['사람처럼','core'],['대선율'],['스윙']],apply:{voicing:'jazz',humanize:1,counter:1,swing:0.16},fit:['funk']},
+  {ko:'🔊 P-펑크 잼',feel:'정적 코드 위 9th + 차용 I7 + 사람처럼·고급 연주. 한 코드로 미는 잼.',combo:[['보이싱 재즈'],['차용화음','core'],['사람처럼'],['고급 연주']],apply:{voicing:'jazz',modalMix:1,humanize:1,advanced:1},fit:['funk']},
+  // 포크·컨트리
+  {ko:'🍀 켈틱 드론',feel:'지속저음 드론 + 클린 오픈코드 + 대선율(휘슬). 믹솔리디안·도리안 켈틱.',combo:[['드론','med core'],['보이싱 클린'],['대선율']],apply:{drone:1,voicing:'clean',counter:1},fit:['celtic','folk']},
+  {ko:'🤠 어쿠스틱 스토리',feel:'클린 보이싱 + 사람처럼 + 대선율(슬라이드). 담백한 컨트리 서사.',combo:[['보이싱 클린'],['사람처럼','core'],['대선율']],apply:{voicing:'clean',humanize:1,counter:1},fit:['country','countrypop','folk']},
+  // 동양·국악·명상
+  {ko:'🎐 정악풍 지속',feel:'느린 호흡(명상 4:6)에 으뜸음 드론, 펜타토닉 위 절제된 여백. 정악의 유장함.',combo:[['드론','med core'],['호흡 4:6','med'],['분위기'],['편곡 다이내믹']],apply:{drone:1,breath:'med',voicing:'clean',introTheme:0,arrDyn:1,arc:'calm'},fit:['saguk','oriental']},
+  {ko:'🏯 사극 OST',feel:'지속저음 드론 + 대선율(대금·해금 라인) + 편곡 대비. 드라마틱한 사극 스코어.',combo:[['드론','med core'],['대선율'],['편곡 다이내믹']],apply:{drone:1,counter:1,arrDyn:1,voicing:'clean',arc:'rise'},fit:['saguk','oriental']},
+  {ko:'🧘 깊은 명상 (긴 날숨)',feel:'긴 날숨(4:8) 호흡에 드론+5도, 선율 없는 분위기. 부교감을 여는 깊은 이완.',combo:[['드론','med core'],['긴 날숨 호흡','med'],['분위기']],apply:{drone:1,breath:'longout',introTheme:0,voicing:'clean',arc:'calm'},fit:['saguk','oriental']},
+  {ko:'🌫 시나위풍 여백',feel:'사람처럼 흔들리는 타이밍 + 큰 여백 + 드론. 즉흥적 산조·시나위의 숨.',combo:[['드론','med core'],['사람처럼'],['편곡 다이내믹']],apply:{drone:1,humanize:1,arrDyn:1,voicing:'clean'},fit:['saguk','oriental']},
+  {ko:'🌊 코히런트 명상 (5:5)',feel:'코히런트 호흡(5:5)에 지속저음, 균형 잡힌 호흡 명상 트랙.',combo:[['드론','med core'],['코히런트 호흡','med'],['분위기']],apply:{drone:1,breath:'coherent',introTheme:0,voicing:'clean',arc:'calm'},fit:['saguk','oriental']},
+  // 발라드·감성 (추가)
+  {ko:'💔 발라드 클라이맥스',feel:'차용 iv의 슬픈 4도 + 컬러 텐션 + 대편성 다이내믹. 후렴 직전 뭉클하게 고조.',combo:[['보이싱 컬러'],['차용화음','core'],['편곡 다이내믹'],['고급 연주']],apply:{voicing:'lush',modalMix:1,arrDyn:1,advanced:1,arc:'wave'},fit:['ballad','jballad']},
+  {ko:'🙌 워십 빌드',feel:'sus·add 컬러 위 크게 부푸는 워십 빌드. 브릿지 뒤 마지막 코러스가 폭발.',combo:[['보이싱 컬러'],['편곡 다이내믹','core'],['고급 연주'],['도미넌트 연결']],apply:{voicing:'lush',arrDyn:1,advanced:1,connect:1,arc:'rise'},fit:['worship']},
+  {ko:'✝️ 가스펠 런',feel:'경과 감7·세컨더리 도미넌트와 트리플렛 스윙 위 성가대 풀사운드.',combo:[['보이싱 재즈'],['도미넌트 연결','core'],['고급 연주'],['스윙']],apply:{voicing:'jazz',connect:1,advanced:1,swing:0.12,arc:'wave'},fit:['gospel']},
+  // J-Pop·시티팝 (추가)
+  {ko:'🍥 애니송 하이텐션',feel:'콜드오픈 훅으로 시작해 대선율·편곡 대비로 질주하는 하이텐션 J-Pop.',combo:[['콜드오픈','core'],['대선율'],['편곡 다이내믹']],apply:{form:'coldopen',counter:1,arrDyn:1,voicing:'auto',arc:'frontload'},fit:['royalroad','komuro','jpop']},
+  {ko:'🎹 시티팝 AOR',feel:'재즈 보이싱 + 차용화음 + 고급 연주 + 대선율. 어덜트 오리엔티드한 세련된 시티팝.',combo:[['보이싱 재즈'],['차용화음','core'],['고급 연주'],['대선율']],apply:{voicing:'jazz',modalMix:1,advanced:1,counter:1},fit:['marusa','jpop']},
+  // 록·밴드 (추가)
+  {ko:'🔥 하드 록 드라이브',feel:'클린 보이싱 + 고급 연주 + 대선율 리프 + 편곡 대비. 파워코드로 미는 드라이브.',combo:[['보이싱 클린'],['대선율','core'],['편곡 다이내믹'],['고급 연주']],apply:{voicing:'clean',counter:1,arrDyn:1,advanced:1,arc:'drop'},fit:['animerock','poppunk','rock']},
+  {ko:'🌊 슈게이즈 월',feel:'컬러 보이싱에 드론 벽 + 대선율. add9 잰글이 몽환적 월오브사운드로.',combo:[['보이싱 컬러'],['드론','med core'],['대선율'],['분위기']],apply:{voicing:'lush',drone:1,counter:1,introTheme:0,arc:'rise'},fit:['ukpop','rock']},
+  // 팝·댄스 (추가)
+  {ko:'🪩 신스팝 펄스',feel:'훅 구조 + 편곡 대비 + 대선율. 포 온 더 플로어 펄스 위 반복 훅.',combo:[['훅 구조','core'],['편곡 다이내믹'],['대선율']],apply:{form:'doublehook',counter:1,arrDyn:1,voicing:'auto',arc:'frontload'},fit:['kpop','pop']},
+  {ko:'🌙 얼터너티브 R&B',feel:'재즈 보이싱 + 드론 + 사람처럼 + 여백. 성긴 얼터너티브 R&B의 흔들림.',combo:[['보이싱 재즈'],['드론','med core'],['사람처럼'],['편곡 다이내믹']],apply:{voicing:'jazz',drone:1,humanize:1,arrDyn:1,introTheme:0},fit:['billie','neosoul','pop']},
+  // 펑크·그루브 (추가)
+  {ko:'🕺 디스코 펑크',feel:'재즈 보이싱 + 커팅 대선율 + 사람처럼 + 살짝 스윙. 포 온 더 플로어 디스코 펑크.',combo:[['보이싱 재즈'],['대선율','core'],['사람처럼'],['스윙']],apply:{voicing:'jazz',counter:1,humanize:1,swing:0.06},fit:['funk']},
+  // 포크·컨트리 (추가)
+  {ko:'🏔 켈틱 릴',feel:'드론 위 빠른 릴/지그, 클린 오픈코드 + 휘슬·피들 대선율 + 사람처럼.',combo:[['드론','med core'],['보이싱 클린'],['대선율'],['사람처럼']],apply:{drone:1,voicing:'clean',counter:1,humanize:1},fit:['celtic','folk']},
+  {ko:'🌻 컨트리 투스텝',feel:'또렷한 I–IV–V 투스텝, 클린 보이싱 + 슬라이드 대선율 + 살짝 스윙.',combo:[['보이싱 클린'],['대선율','core'],['사람처럼'],['스윙']],apply:{voicing:'clean',humanize:1,counter:1,swing:0.06},fit:['country','countrypop','folk']},
+  {ko:'🍂 인디 포크',feel:'어쿠스틱 잰글에 여백 + 대선율 + 사람처럼. 담백한 인디 포크 감성.',combo:[['보이싱 클린'],['편곡 다이내믹','core'],['대선율'],['사람처럼']],apply:{voicing:'clean',arrDyn:1,counter:1,humanize:1},fit:['countrypop','folk','celtic']},
+];
+function applyRecipe(r){if(r)applySpec(r.apply,null);}          // 현재 스타일 유지, 조합만 얹음
+let guideSeed=(Math.random()*1e9)|0,guideShown=[];
+function pickRecipes(styleId,n){
+  const sig={ko:'⭐ 시그니처',feel:(GUIDE[styleId]||{}).feel||'이 스타일의 정통 조합.',combo:(GUIDE[styleId]||{}).combo||[],apply:GUIDE_APPLY[styleId]||{},sig:true};
+  let s=guideSeed>>>0;const rng=()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296;};
+  const shuf=arr=>{arr=arr.slice();for(let i=arr.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}return arr;};
+  const spec=shuf(RECIPES_SPEC.filter(r=>recipeFits(r,styleId)));   // 장르 특화 먼저
+  const gen=shuf(RECIPES.filter(r=>recipeFits(r,styleId)));         // 공통 무드로 보충
+  const seen=new Set(),rest=[];
+  for(const r of [...spec,...gen]){if(seen.has(r.ko))continue;seen.add(r.ko);rest.push(r);}
+  return [sig,...rest.slice(0,Math.max(0,n-1))];                    // 시그니처 고정 + 특화 우선
+}
+function renderGuide(){
+  const byId=Object.fromEntries(STYLES.map(s=>[s.id,s]));
+  const cur=state.style,st=byId[cur]||{},curName=st.name||cur;let h='';
+  h+=`<p class="gintro"><b style="color:var(--amber)">${curName}</b>에 어울리는 조합을 추천합니다. 카드의 설명을 보고 <b>적용</b>을 누르면 그 조합이 바로 걸려요. 마음에 안 들면 <b>🔄 다른 조합</b>으로 새로 뽑으세요.</p>`;
+  {const tM=state.targetSec?Math.floor(state.targetSec/60):'',tS=state.targetSec?state.targetSec%60:'';
+  h+=`<div class="gnote"><span class="h">⏱ 목표 시간 — 여기서 정해도 메인과 항상 동기화</span>
+    <button class="sm gtgt" data-sec="150">2:30</button> <button class="sm gtgt" data-sec="210">3:30</button> <button class="sm gtgt" data-sec="300">5:00</button> <button class="sm gtgt" data-sec="0">해제</button>
+    &nbsp;<input id="gTgtM" type="number" min="0" max="180" value="${tM}" placeholder="분" style="width:56px"> : <input id="gTgtS" type="number" min="0" max="59" value="${tS}" placeholder="초" style="width:56px"> <button class="sm" id="gTgtBtn">적용</button>
+    <span class="mini" id="gTgtOut">${state.targetSec?` 현재 ${Math.floor(state.targetSec/60)}:${String(state.targetSec%60).padStart(2,'0')}`:' 미설정'}</span></div>`;}
+  h+=`<div class="grechead"><span class="grh">${curName} <span class="gtempo">♩=${(st.tempo||[])[0]}–${(st.tempo||[])[1]}</span> 추천 조합</span><button class="grefresh" id="guideRefresh">🔄 다른 조합</button></div>`;
+  guideShown=pickRecipes(cur,4);
+  h+='<div class="grecs">';
+  guideShown.forEach((r,i)=>{
+    const chips=r.combo.map(([t,cls])=>`<span class="gchip ${cls||''}">${t}</span>`).join('')+((r.apply&&r.apply.arc)?`<span class="gchip med">빌드업 ${({rise:'상승',wave:'파도',drop:'드롭',calm:'잔잔',frontload:'숏폼'})[r.apply.arc]||''} 아치</span>`:'');
+    h+=`<div class="gcard ${r.sig?'now':''}"><div class="gt"><span class="gn">${r.ko}</span>${r.sig?'<span class="gnow">이 스타일 정통</span>':''}</div>`
+      +`<div class="gcombo">${chips}</div>`
+      +`<div class="gfeel">${r.feel}</div>`
+      +`<button class="gapply" data-ri="${i}">이 조합 적용</button></div>`;
+  });
+  h+='</div>';
+  h+=`<div class="gnote"><span class="h">요즘 빌드업 문법 (2025-26 트렌드 반영)</span>스트리밍·숏폼 시대의 에너지 곡선: ① <b>프론트로드</b> — 청취자 1/3이 30초 안에 스킵하니 훅을 먼저(콜드오픈·짧은 인트로) ② <b>포스트코러스 = 최고점</b> — 코러스 뒤 제2훅이 코러스보다 높게 ③ <b>짧고 낮은 2절</b> — 빠르게 훅으로 복귀 ④ <b>브릿지 스트립</b> — 마지막 코러스 직전 비워서 최고점 대비 ⑤ 인접 구간은 <b>2~3단계 차이</b>로 대비. 각 구간 카드의 <b>빌드 단계(1 여백~6 클라이맥스)</b>로 직접 조절하거나, 아래 레시피의 <b>빌드업 아치</b>(숏폼·파도·상승·드롭·잔잔)로 자동 배치하세요. 단계별 악기 진입 순서는 장르마다 다릅니다(록=기타 먼저, 발라드=드럼 늦게, 그루브=리듬 먼저).</div>`;
+  h+=`<div class="gnote"><span class="h">조합의 원리 — 층으로 쌓기</span>① 구조(폼)로 뼈대 → ② 보이싱·차용화음으로 화성의 색 → ③ 대선율로 선율 층 → ④ 편곡 다이내믹으로 에너지 곡선. 적용 후 <b>02 흐름 & 구조</b>에서 코드를 손보거나, 하단 악기 칩으로 층을 껐다 켤 수 있습니다.</div>`;
+  h+='<div class="glegend">'+GUIDE_LEGEND.map(([k,v])=>`<div class="r"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('')+'</div>';
+  h+=`<div class="gnote"><span class="h">사운드 명상으로 쓰는 법</span>느린 스타일(사극·발라드·다크 팝)에서 <b>🧘 명상</b>·<b>🌊 몽환</b>·<b>🌙 앰비언트 드론</b> 조합을 뽑으면 드론+호흡까지 세팅된 명상 골격이 나옵니다. 호흡은 한 호흡이 정수 마디에 떨어지고 믹스 전체가 숨쉽니다(들숨=밝고 참/날숨=어둡고 잦아듦). 단, 호흡 필터·음량과 드론 음색은 <b>재생 전용</b> — 로직에선 드론을 Alchemy 패드로 바꾸고 마스터 로우패스+게인을 호흡 곡선으로 오토메이션(로직가이드.txt에 곡선 명시).</div>`;
+  h+=`<div class="gfoot">MIDI 전달 → 음표·보이싱·조표·박자·템포·마커·트랙명·페달·차용화음·대선율·편곡 다이내믹<br>재생 전용 → 호흡 필터·음량·드론 음색·분위기 스윕·스케치 음색<br>최종 사운드 상한은 로직 가상음원. 이 앱은 정확한 MIDI 골격까지.</div>`;
+  $('guideBody').innerHTML=h;
+  const rf=$('guideRefresh');if(rf)rf.onclick=()=>{guideSeed=(Math.random()*1e9)|0;renderGuide();};
+  const gb=$('gTgtBtn');if(gb)gb.onclick=()=>{const m=+($('gTgtM').value||0),sx=+($('gTgtS').value||0);setTargetSec(m*60+sx);renderGuide();};
+}
+function openGuide(){renderGuide();$('guideOverlay').hidden=false;document.body.style.overflow='hidden';$('guideBody').scrollTop=0;}
+function closeGuide(){$('guideOverlay').hidden=true;document.body.style.overflow='';}
+$('guideBtn').onclick=openGuide;$('guideClose').onclick=closeGuide;
+$('guideBody').addEventListener('click',e=>{const tg=e.target.closest('.gtgt');if(tg){setTargetSec(+tg.dataset.sec);renderGuide();return;}
+  const b=e.target.closest('.gapply');if(!b)return;const ri=+b.dataset.ri;const r=guideShown[ri];if(!r)return;if(r.sig)applyGuide(state.style);else applyRecipe(r);});
+$('guideOverlay').onclick=e=>{if(e.target===$('guideOverlay'))closeGuide();};
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('guideOverlay').hidden)closeGuide();});
+$('styleRand').onclick=()=>{genSong();$('panel2').classList.remove('collapsed');};
+$('flowRand').onclick=genFlowRandom;
+$('fitBtn').onclick=()=>{const m=+$('fitMin').value||0,s=+$('fitSec').value||0;setTargetSec(m*60+s);};
+$('droneOn').onchange=e=>{state.enabled.drone=e.target.checked;const t=e.target.checked?1:0;
+  if(BUS.drone&&ctx){BUS.drone.gain.cancelScheduledValues(ctx.currentTime);BUS.drone.gain.setTargetAtTime(t,ctx.currentTime,0.02);}else if(BUS.drone)BUS.drone.gain.value=t;
+  document.querySelector('.ichip[data-k="drone"]')?.classList.toggle('on',state.enabled.drone); // 재생바 드론 칩과 동기화
+  if(MODEL&&!playing&&!ctx)playSection(state.active);};
+$('droneFifth').onchange=e=>{state.droneFifth=e.target.checked;if(MODEL)playSection(state.active);};
+$('breathPattern').onchange=e=>{state.breathPattern=e.target.value;breathFit();};
+$('breathBtn').onclick=()=>breathFit();
+$('reset').onclick=()=>{stop();state.targetSec=null;$('fitMin').value='';$('fitSec').value='';state.style='ballad';$('style').value='ballad';$('connect').checked=true;state.enabled.melody=false;state.loop=false;
+  $('key').value=0;prevKeyPc=0;keyHintUpdate();state.swing=0;$('swing').value=0;
+  state.humanize=true;state.pedal=true;$('humanize').checked=true;$('pedal').checked=true;
+  state.voicing='auto';$('voicing').value='auto';state.advanced=true;$('advanced').checked=true;
+  state.introTheme=false;$('introTheme').checked=false;state.introFull=false;$('introFull').checked=false;
+  state.soloPiano=false;$('soloPiano').checked=false;
+  state.enabled.drone=false;$('droneOn').checked=false;state.droneFifth=true;$('droneFifth').checked=true;
+  state.breathAlign=false;state.breathPattern='med';state.breathIn=4;state.breathOut=6;const bp=$('breathPattern');if(bp)bp.value='med';$('breathOut').textContent='';
+  state.modalMix=false;const mm=$('modalMix');if(mm)mm.checked=false;
+  state.arrDyn=false;const ad=$('arrDyn');if(ad)ad.checked=false;
+  ['piano','bass','guitar','drums','melody','counter','lead','drone'].forEach(k=>{state.enabled[k]=(k!=='melody'&&k!=='drone'&&k!=='counter');if(BUS[k])BUS[k].gain.value=state.enabled[k]?1:0;document.querySelector(`.ichip[data-k="${k}"]`)?.classList.toggle('on',state.enabled[k]);});
+  applyStyleDefaults(false);renderEditor();updateRibbon();
+  $('panel1').classList.remove('collapsed');['panel2','panel3','panel4','panel5'].forEach(p=>$(p).classList.add('collapsed'));};
+$('connect').onchange=()=>{};
+$('trUp').onclick=()=>setKey(prevKeyPc+1);$('trDn').onclick=()=>setKey(prevKeyPc-1);
+$('melReseed').onclick=()=>{state.melSeed=(Math.random()*1e9)|0;if(!state.enabled.melody){state.enabled.melody=true;if(BUS.melody)BUS.melody.gain.value=1;document.querySelector('.ichip[data-k="melody"]')?.classList.add('on');}playSection(state.active);};
+$('saveLocal').onclick=saveLocal;$('loadLocal').onclick=loadLocal;$('exJson').onclick=exportJSON;
+$('imJson').onchange=e=>{if(e.target.files[0])importJSON(e.target.files[0]);e.target.value='';};
+$('play').onclick=play;$('stop').onclick=()=>stop();
+/* iOS/사파리: 첫 사용자 제스처에 오디오 컨텍스트를 깨워 둠(무음 방지) */
+const audioUnlock=()=>{try{audioInit();if(ctx&&ctx.state!=='running'&&ctx.resume)ctx.resume();}catch(e){}};
+['pointerdown','touchend','click','keydown'].forEach(ev=>window.addEventListener(ev,audioUnlock,{passive:true,once:false}));
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&ctx&&ctx.state==='suspended'&&ctx.resume)ctx.resume();});
+$('exAll').onclick=exportAll;document.querySelectorAll('[data-inst]').forEach(b=>b.onclick=()=>exportOne(b.dataset.inst));
+$('humanize').onchange=e=>{state.humanize=e.target.checked;};
+$('voicing').onchange=e=>{state.voicing=e.target.value;if(MODEL)playSection(state.active);};
+$('pedal').onchange=e=>{state.pedal=e.target.checked;};
+$('advanced').onchange=e=>{state.advanced=e.target.checked;if(MODEL)playSection(state.active);};
+$('introTheme').onchange=e=>{state.introTheme=e.target.checked;if(MODEL)playSection(state.active);};
+$('introFull').onchange=e=>{state.introFull=e.target.checked;if(MODEL)playSection(state.active);};
+$('soloPiano').onchange=e=>{state.soloPiano=e.target.checked;if(MODEL)playSection(state.active);};
+$('humReseed').onclick=()=>{state.humSeed=(Math.random()*1e9)|0;if(MODEL)playSection(state.active);};
+document.querySelectorAll('.ptoggle').forEach(h=>h.onclick=()=>h.closest('.panel').classList.toggle('collapsed'));
+
+renderEditor();updateRibbon();
+/* 넓은 화면(아이패드+)에선 오른쪽 워크스페이스(흐름·구조)를 펼쳐 둔다 */
+if(window.matchMedia&&window.matchMedia('(min-width:768px)').matches)$('panel2').classList.remove('collapsed');
+</script>
+</body>
+</html>
