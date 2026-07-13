@@ -1938,6 +1938,31 @@ function refreshChipLabels(){
     chip.classList.toggle('on',!!state.enabled[k]);
     if(k==='genre')chip.style.display=GENRE_TRK[state.style]?'':'none';});
 }
+/* 추천 악기의 음색 느낌 — 로직 음원 선택 시 "어떤 캐릭터로 로딩할지" 가이드. 트랙명 앞에 붙음 */
+function instFeel(part){const st=state.style,P=PERF[st]||{};
+  const orch=['epic','animeost'].includes(st), soft=['ballad','jballad','worship','neosoul','marusa','billie','royalroad','celtic','country','countrypop'].includes(st), hard=['animerock','poppunk','kpop','komuro','funk','motown'].includes(st);
+  const F={};
+  // 화성(피아노/키보드)
+  F.piano = st==='gospel'?'따뜻한 드로바': st==='komuro'?'밝은 디지털': orch?'넓은 홀 레가토': soft?'부드럽고 따뜻한': hard?'선명하고 단단한':'밝고 균형잡힌';
+  // 베이스
+  F.bass = orch?'묵직한 저현 레가토': P.bass==='funk16'?'통통 튀는 핑거': P.bass==='eighths'?'단단한 픽': hard?'또렷한 신스': soft?'따뜻하고 둥근':'안정적인';
+  // 기타
+  F.guitar = orch?'금관 팡파레': P.gtr==='power'?'거친 디스토션': P.gtr==='none'?'—': P.gtr==='arp'?'맑은 나일론/스틸': P.gtr==='chuck16'?'커팅용 얇은 클린': hard?'밝은 클린': soft?'따뜻한 어쿠스틱':'클린';
+  // 드럼
+  F.drums = orch?'웅장한 오케 타악(홀)': st==='saguk'?'전통 타악': soft?'부드러운 브러시/소프트킷': hard?'펀치있는 타이트킷':'자연스러운 어쿠스틱';
+  // 주선율
+  F.melody = orch?'노래하는 소어링 스트링': hard?'선명한 신스 리드/보컬': soft?'감성적인 보컬/솔로 스트링':'따뜻한 리드';
+  // 대선율
+  F.counter = orch?'포근한 프렌치 혼': ['funk','motown','gospel'].includes(st)?'꽉찬 혼 섹션': hard?'짧은 신스 플럭': soft?'흐르는 첼로':'응답하는 라인';
+  // 리드 테마
+  F.lead = orch?'맑은 목관(플루트/오보에)': soft?'서정적인 플루트/솔로': hard?'쏘는 신스 리드':'맑은 리드';
+  // 드론
+  F.drone = orch?'저역 페달(지속 저현)': ['gospel','worship'].includes(st)?'오르간 지속음': ['country','countrypop'].includes(st)?'페달스틸 스웰': st==='celtic'?'백파이프 드론':'따뜻한 앰비언트 패드';
+  // 전용 트랙
+  const G=GENRE_TRK[st];
+  if(G)F.genre = G.kind==='banjo'?'또랑또랑한 밴조': G.kind==='choir'?'벅찬 합창(아 母音)': G.kind==='harp'?'영롱한 하프': G.kind==='arps'?'반짝이는 신스 아르프': G.kind==='stabs'?'짧고 강한 스탭':'전용';
+  return F[part]||'';
+}
 function instMeta(part){const st=state.style,g=(PERF[st]||{}).gtr;
   const map={
     piano: ['epic','animeost'].includes(st)?{n:'Strings (Sustain/Marcato Bed)',p:48}
@@ -2070,7 +2095,7 @@ function extraGuideTracks(){
   return ['ADD - String Pad: final Chorus lift','ADD - BGV Stack: Chorus harmonies'];   // 발라드·워십·가스펠 등
 }
 function exportAll(){arrange();
-  const im=p=>instMeta(p);
+  const im=p=>{const m=instMeta(p);if(!m)return m;const f=instFeel(p);return (f&&f!=='—')?{n:'['+f+'] '+m.n,p:m.p}:m;};   // 트랙명 앞에 음색 느낌(로딩 가이드) 부착
   const tr=[tempoTrack(),
     noteTrack(MODEL.tracks.piano,0,im('piano').p,false,ped64(),im('piano').n),
     noteTrack(MODEL.tracks.bass,1,im('bass').p,false,null,im('bass').n),
