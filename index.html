@@ -331,26 +331,8 @@
     </div>
   </div>
 
-  <div class="panel collapsed" id="panel4">
-    <div class="plabel ptoggle"><span class="n">04</span> 🧘 사운드 명상 <span class="chev">▾</span></div>
-    <div class="pbody">
-    <div class="btnrow" style="align-items:center;">
-      <span class="mini" style="letter-spacing:.08em;">지속음</span>
-      <label class="chk"><input type="checkbox" id="droneOn"> 드론</label>
-      <label class="chk"><input type="checkbox" id="droneFifth" checked> +5도</label>
-    </div>
-    <div class="btnrow" style="margin-top:8px;align-items:center;">
-      <span class="mini">호흡</span>
-      <select id="breathPattern" style="min-width:130px;"></select>
-      <button class="sm primary" id="breathBtn">🫁 맞춤</button>
-      <span class="mini" id="breathOut" style="letter-spacing:0;"></span>
-    </div>
-    <p class="tip"><b>드론</b>은 조 으뜸음(+5도) 저음 패드를 곡 전체에 지속. <b>호흡 맞춤</b>은 한 호흡을 정수 마디에 정렬하고 믹스 전체가 그 리듬으로 숨쉽니다(들숨↑밝게 / 날숨↓어둡게). 드론 없이도 작동.</p>
-    </div>
-  </div>
-
   <div class="panel collapsed" id="panel5">
-    <div class="plabel ptoggle"><span class="n">05</span> 내보내기 & 저장 <span class="chev">▾</span></div>
+    <div class="plabel ptoggle"><span class="n">04</span> 내보내기 & 저장 <span class="chev">▾</span></div>
     <div class="pbody">
     <div class="btnrow">
       <button class="sm primary" id="exAll">🎼 전체 MIDI + 송시트</button>
@@ -568,7 +550,10 @@ const META_GROOVE={'5/8':'5_32','10/8':'10_3232'};
 
 /* ===== 상태 ===== */
 const $=id=>document.getElementById(id);
-let state={style:'ballad',active:0,sections:[],enabled:{piano:true,bass:true,guitar:true,drums:true,melody:false,counter:false,lead:true,drone:false,genre:true},loop:false,melSeed:(Math.random()*1e9)|0,swing:0,humanize:true,pedal:true,humSeed:(Math.random()*1e9)|0,voicing:'auto',advanced:true,introTheme:false,introFull:false,soloPiano:false,breathRate:6,breathAlign:false,droneFifth:true,breathPattern:'med',breathIn:4,breathOut:6,modalMix:false,arrDyn:false,targetSec:null};
+/* 사운드 명상 패널(04) 제거 — 관련 컨트롤 id를 숨은 더미로 유지해 기존 참조가 안전하게 동작(드론·호흡 오디오 로직은 그대로, 드론 on/off는 02탭 악기 칩) */
+(()=>{const host=document.body||document.documentElement;const mk=(id,tag,type)=>{if(document.getElementById(id))return;const el=document.createElement(tag||'input');el.id=id;if(!tag)el.type=type||'checkbox';el.style.display='none';if(host)host.appendChild(el);};
+  mk('droneOn',null,'checkbox');mk('droneFifth',null,'checkbox');mk('breathPattern','select');mk('breathBtn','button');mk('breathOut','span');})();
+let state={style:'kpop',active:0,sections:[],enabled:{piano:true,bass:true,guitar:true,drums:true,melody:false,counter:false,lead:true,drone:false,genre:true},loop:false,melSeed:(Math.random()*1e9)|0,swing:0,humanize:true,pedal:true,humSeed:(Math.random()*1e9)|0,voicing:'auto',advanced:true,introTheme:false,introFull:false,soloPiano:false,breathRate:6,breathAlign:false,droneFifth:true,breathPattern:'med',breathIn:4,breathOut:6,modalMix:false,arrDyn:false,targetSec:null};
 let focused=null; // 코드 팔레트용 마지막 포커스 슬롯
 let prevKeyPc=0; // 현재 곡 조(전조 기준)
 const keyPc=()=>+$('key').value,globMeter=()=>$('meter').value,grooveId=()=>$('groove').value;
@@ -658,20 +643,28 @@ function applyStyleDefaults(randomize){
   assignByType(randomize);
 }
 /* ===== 시간 맞춤 구성: 목표 초 → 프레이즈 단위 구조 + BPM 미세 보정 ===== */
-function buildFormForBars(n,energetic){                    // n=짝수 총 마디, 4마디 프레이즈 지향
-  if(n<8)return [['Verse',Math.max(2,n)]];
-  if(n<16)return [['Intro',2],['Verse',n-4],['Outro',2]];
-  if(n<24){let v=Math.round((n-8)/4)*2;v=Math.max(4,Math.min(v,n-12));
-    return [['Intro',2],['Verse',v],['Chorus',n-6-v],['Outro',4]];}
-  const segs=[['Intro',4],['Verse',8],['Chorus',8]];let used=20,outro=4;
-  const cycle=[['Verse',8],['Chorus',8],['Bridge',4],['Chorus',8],['Chorus',8]];let gi=0;
-  while(used+outro+cycle[gi%cycle.length][1]<=n){const g=cycle[gi%cycle.length];segs.push([g[0],g[1]]);used+=g[1];gi++;}
-  let r=n-used-outro;                                      // 남은 짝수 0~6 → 아웃트로/인트로에 배분
-  if(r>=4){outro+=4;r-=4;}if(r>=2){if(outro<8){outro+=2;}else segs[0][1]+=2;r-=2;}
-  // 아웃트로 직전은 코러스로 끝나게(벌스로 끝나면 직전 코러스와 순서 스왑)
+function buildFormForBars(n,energetic){                    // n=총 마디. 모든 구간을 4마디 프레이즈(4의 배수)로 — 인트로·아웃트로 포함
+  // 4마디 블록 단위로 환산(홀수·2마디 프레이즈 근절)
+  let blocks=Math.max(2,Math.round(n/4));                  // 총 4마디 블록 수(최소 2블록=8마디)
+  if(blocks<3)return [['Verse',blocks*4]];                 // 아주 짧으면 벌스 하나(4의 배수)
+  if(blocks===3)return [['Intro',4],['Verse',4],['Outro',4]];
+  if(blocks===4)return [['Intro',4],['Verse',4],['Chorus',4],['Outro',4]];
+  // 5블록 이상: 인트로4 + [벌스·코러스·브릿지 사이클] + 아웃트로4, 전부 4마디 블록
+  const segs=[['Intro',4]];let used=1;                     // 블록 단위 카운트
+  const outroBlocks=1;                                     // 아웃트로 4마디
+  const cycle=[['Verse',2],['Chorus',2],['Verse',2],['Chorus',2],['Bridge',1],['Chorus',2]];  // 블록수(×4마디)
+  let gi=0;
+  while(used+outroBlocks+cycle[gi%cycle.length][1]<=blocks){
+    const g=cycle[gi%cycle.length];segs.push([g[0],g[1]*4]);used+=g[1];gi++;}
+  let rem=blocks-used-outroBlocks;                         // 남은 4마디 블록 → 코러스에 얹어 8/12마디로(짝수 프레이즈 유지)
+  while(rem>0){                                            // 남는 블록은 마지막 코러스나 벌스를 늘려 흡수
+    let idx=-1;for(let i=segs.length-1;i>=1;i--)if(segs[i][0]==='Chorus'){idx=i;break;}
+    if(idx<0)for(let i=segs.length-1;i>=1;i--)if(segs[i][0]==='Verse'){idx=i;break;}
+    if(idx<0)break;segs[idx][1]+=4;rem--;}
+  // 아웃트로 직전은 코러스로 끝나게(벌스로 끝나면 직전 코러스와 스왑)
   const li=segs.length-1;
   if(segs[li][0]==='Verse'){for(let i=li-1;i>0;i--)if(segs[i][0]==='Chorus'){[segs[i],segs[li]]=[segs[li],segs[i]];break;}}
-  segs.push(['Outro',outro]);
+  segs.push(['Outro',outroBlocks*4]);
   return segs;
 }
 function fitToDuration(targetSec){
@@ -723,7 +716,7 @@ function genFlowRandom(){
 (function init(){
   NOTE.forEach((n,i)=>{const o=document.createElement('option');o.value=i;o.textContent=n;if(n==='C')o.selected=true;$('key').appendChild(o);});
   Object.keys(METERS).forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m;$('meter').appendChild(o);});
-  STYLES.forEach(s=>{const o=document.createElement('option');o.value=s.id;o.textContent=s.name;$('style').appendChild(o);});
+  STYLES.forEach(s=>{const o=document.createElement('option');o.value=s.id;o.textContent=s.name;if(s.id==='kpop')o.selected=true;$('style').appendChild(o);});
   Object.entries(GROOVES).forEach(([k,v])=>{const o=document.createElement('option');o.value=k;o.textContent=v.name;$('groove').appendChild(o);});
   Object.entries(BREATH_PATTERNS).forEach(([k,v])=>{const o=document.createElement('option');o.value=k;o.textContent=v.ko;if(k==='med')o.selected=true;$('breathPattern').appendChild(o);});
   buildInstChips('insts',false);buildInstChips('insts2',true);   // 시작 탭(간단) + 02 연주&표현 탭(역할 표시)
@@ -978,8 +971,10 @@ function arrange(){
       if(info.build){e=Math.min(5,2+Math.floor(bi/Math.max(1,nb-1)*3));buildLast=bi===nb-1;}
       const stg=(!info.build&&+sec.stage>=1)?stageProfile(Math.min(6,+sec.stage),state.style):null;   // 빌드업 단계(빌드업 섹션은 자체 램프)
       if(stg)e=stg.e;
-      if(themeOn){                                          // 밴드 강도: 활기찬 스타일은 풀밴드, 절제 스타일은 차분히(옵션 A면 전부 풀밴드)
-        if(state.introFull||!GENTLE_INTRO[state.style])e=Math.max(e,4);else e=Math.max(e,2);
+      if(themeOn){                                          // 인트로/아웃트로: 테마를 리드로 제시하며 성글게 — 풀밴드로 꽉 채우지 않음(코러스처럼 들리는 문제 방지)
+        if(state.introFull)e=Math.max(e,4);                 // 옵션 A(풀밴드 인트로)를 켰을 때만 꽉 채움
+        else if(!GENTLE_INTRO[state.style])e=Math.min(Math.max(e,2),3);   // 활기찬 스타일도 인트로는 최대 3(리듬+화성 골격, 코러스 아님)
+        else e=Math.max(e,2);                               // 절제 스타일: 조용히
       }
       const prevSec=state.sections[si-1];
       const entryAccent=bi===0&&(sec.type==='Bridge'||(prevSec&&STYPES[prevSec.type]&&STYPES[prevSec.type].build));   // 브릿지 진입·빌드업 직후: 구조적 크래시
@@ -989,7 +984,13 @@ function arrange(){
       const fill=!isRub&&!buildLast&&(pickupFill||(stg
         ?(stg.fill>0&&(((bi+1)%(stg.fill===2?2:4)===0&&bi<nb-1)||(bi===nb-1&&si<ns-1)))
         :((bi===nb-1&&si<ns-1)||(e>=4&&(bi+1)%4===0&&bi<nb-1))));
-      const dm=stg?stg.dr:(amask?amask.drums:true);                                  // 단계 > 편곡 다이내믹 > 기본
+      let dm=stg?stg.dr:(amask?amask.drums:true);                                    // 단계 > 편곡 다이내믹 > 기본
+      let introSparse=false;
+      if(themeOn&&!state.introFull){                                                 // 인트로/아웃트로 성근 편성: 코러스처럼 꽉 차지 않게
+        introSparse=true;
+        const half=bi>=Math.floor(nb/2);                                             // 전반: 화성+테마만, 후반: 라이트 드럼 진입
+        dm = half ? 'light' : false;                                                 // 앞은 드럼 없이, 뒤에 라이트로 자연스러운 유입
+      }
       const drumsBefore=tracks.drums.length;
       if(!atmos&&dm)drumBar(gid,meter,dm==='light'?(stg?1:Math.min(e,2)):e,dm==='light'?(entryAccent?crash:false):crash,buildLast,dm==='light'?false:fill,barStart,tracks.drums);
       else if(!atmos&&entryAccent)tracks.drums.push({t:barStart,type:'crash',vel:92});
@@ -1060,7 +1061,9 @@ function arrange(){
           }
           pianoRegion(ch,s,d,melE,tracks.piano,bb,barStart,bts,opt);
           if(PEDAL_COMP[curPerf.comp]||opt.solo)pedSegs.push({t0:s,t1:s+d});   // 코드 셀마다 페달 한 번(하모니 동기)
-          if(!buildLast&&!isRub&&(stg?stg.gt:(!amask||amask.guitar)))guitarRegion(ch,s,d,e,tracks.guitar,bb,barStart,bts);
+          const gtGate=stg?stg.gt:(!amask||amask.guitar);
+          const introNoGtr=introSparse&&bi<Math.floor(nb/2);   // 인트로 전반: 기타 빼고 화성+테마만(성근 시작)
+          if(!buildLast&&!isRub&&gtGate&&!introNoGtr)guitarRegion(ch,s,d,e,tracks.guitar,bb,barStart,bts);
           cellIdx++;
         }
         j=k;
@@ -1244,12 +1247,22 @@ function pianoRegion(ch,s,d,e,out,bb,bs,bts,opt){const ps=ch.piano,top=ps[ps.len
   switch(curPerf.comp){
     case 'broken':{                                       // 발라드: 왼손 베이스(felt 박) + 오른손 흐르는 분산
       const lo=rootLo(),up=ps.concat([ps[ps.length-1]+12]);
-      if(e<=2){                                           // 인트로·조용한 구간: 여백 있는 아르페지오 + 다운비트 코드 쌓기(풍성한 보이싱)
-        const core=ps.slice(-3);                          // 상위 3성부를 다운비트에 살짝 겹쳐 울림
-        chord(0,58,2.0);                                  // ↓ chord()가 core 전체를 부드럽게 굴려 발음
-        const arp=[0.5,1.0,1.5,2.5,3.0,3.5];let k2=0;
-        arp.forEach(o=>{if(o<BB-1e-6){note(o,up[k2%up.length],44,o%1===0?1.1:0.9);k2++;}});  // 2박·4박 앞은 비워 숨
-        bts.forEach(o=>note(o,lo,52,1.9));                // 왼손 근음은 온음표처럼 길게
+      if(e<=2){                                           // 인트로·조용한 구간: 넓게 벌린 보이싱 + 흐르는 아르페지오(발라드 인트로)
+        // 넓은 스프레드: 근음(왼손) + 위로 벌린 화음 상성부만(뭉침 방지). ps에서 3·5·7도를 옥타브 벌려 배치
+        const uniq=[...new Set(ps)].sort((a,b)=>a-b);
+        const spread=[];                                  // 아래→위로 넓게: 저역 근음, 중역 3도, 상역 5·7도
+        if(uniq.length){spread.push(uniq[0]);              // 최저(대개 3도 또는 근음)
+          if(uniq.length>=2)spread.push(uniq[Math.min(1,uniq.length-1)]+ (uniq.length>=4?0:0));
+          if(uniq.length>=3)spread.push(uniq[uniq.length-2]);
+          spread.push(uniq[uniq.length-1]);}              // 최상
+        // 아르페지오용 상행 라인(넓은 간격): 왼손 근음 위에 화음을 한 음씩 흐르게
+        const line=uniq.slice();while(line.length<4)line.push(line[line.length-1]+12);
+        // 다운비트: 근음 + 최상 2음만 부드럽게(뭉침 없이 울림 열기)
+        note(0,lo,50,3.6);                                // 왼손 근음 길게(온음표)
+        [uniq[Math.max(0,uniq.length-2)],uniq[uniq.length-1]].forEach((m,i)=>note(0.02*i,m,46-i*4,3.4));
+        // 흐르는 아르페지오: 1박 뒤부터 한 음씩 상행, 2·4박 앞은 비워 숨
+        const arpPos=[1.0,1.5,2.0,3.0,3.5];let k2=0;
+        arpPos.forEach(o=>{if(o<BB-1e-6){const m=line[k2%line.length]+ (k2>=line.length?12:0);note(o,m,40,o%1===0?1.0:0.8);k2++;}});
         return;}
       let k=0;
       for(let o=0;o<BB-1e-6;o+=0.5){note(o,up[k%up.length],o<1e-6?62:46,1.7);k++;}
@@ -1652,9 +1665,9 @@ function fmt(s){const mm=Math.floor(s/60),ss=Math.round(s%60);return mm+':'+Stri
 /* ===== Web Audio ===== */
 let ctx,master,reverb,noiseBuf,BUS={},GTRIN=null,nodes=[],stopT=null,raf=null;   // GTRIN: 일렉기타 체인(클린/드라이브)
 let breathFilter,breathGain;              // 전체 믹스 호흡(필터+음량)
-let playing=false,playSec=-1,playGen=0;   // 재생 상태(구간 버튼 토글용)
+let playing=false,playSec=-1,playGen=0,schedTimer=null;   // 재생 상태(구간 버튼 토글용)
 function audioInit(){if(ctx)return;
-  ctx=new (window.AudioContext||window.webkitAudioContext)();
+  ctx=new (window.AudioContext||window.webkitAudioContext)({latencyHint:'playback'});   // 재생 안정성 우선(노트북 언더런 방지) — 약간의 지연 대신 끊김 제거
   master=ctx.createGain();master.gain.value=0.33;const comp=ctx.createDynamicsCompressor();comp.threshold.value=-14;comp.ratio.value=3.5;comp.knee.value=8;comp.attack.value=0.004;comp.release.value=0.25;
   breathFilter=ctx.createBiquadFilter();breathFilter.type='lowpass';breathFilter.frequency.value=20000;breathFilter.Q.value=0.3; // 전체 호흡: 필터
   breathGain=ctx.createGain();breathGain.gain.value=1;                                                                        // 전체 호흡: 음량
@@ -1727,6 +1740,7 @@ function scheduleBreath(t0,durSec){
 }
 /* 일렉기타 보이스: 피킹 트랜지언트 + 현 감쇠 + 플럭 필터(밝게 튕겨 어두워짐). 록=드라이브, 그 외=클린 */
 function guitarTone(n,t,dur){
+  if(typeof __reserveVoice==='function'&&!__reserveVoice(t,2))return;   // 기타 보이스 상한
   const drive=ROCK.includes(state.style);
   const dest=(GTRIN&&(drive?GTRIN.drive:GTRIN.clean))||BUS.guitar;
   const f=f2m(n.midi),peak=Math.max(0.02,(n.vel/127)*(drive?0.20:0.30));
@@ -1763,6 +1777,7 @@ function headroomTrim(){
   return Math.max(0.5,Math.min(1,1.9/est));   // est≈1.9 이하면 트림 없음, 밀도 높을수록 내림(최대 -6dB)
 }
 function tone(bus,{wave,midi,t,dur,vel,lpf,atk=0.005,rel,detune=0,lvl=1}){
+  if(bus!=='bass'&&typeof __reserveVoice==='function'&&!__reserveVoice(t,1))return;   // 베이스(뼈대) 제외하고 상한 적용 — 채워지는 성부만 스킵(재생만)
   const o=ctx.createOscillator();o.type=wave;o.frequency.value=f2m(midi);if(detune)o.detune.value=detune;
   const g=ctx.createGain(),lp=ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=lpf;
   const peak=Math.max(0.02,(vel/127)*lvl),r=rel??Math.min(0.6,dur*0.5);
@@ -1770,6 +1785,7 @@ function tone(bus,{wave,midi,t,dur,vel,lpf,atk=0.005,rel,detune=0,lvl=1}){
   o.connect(lp);lp.connect(g);g.connect(BUS[bus]);o.start(t);o.stop(t+dur+r+0.05);nodes.push(o);}
 /* 바이올린 — 부드럽게: 어둡고 느린 보잉 + 톱니+삼각 혼합 + 옅은 바디 공명 */
 function violin(t,dur,midi,vel,bus){
+  if(bus!=='melody'&&typeof __reserveVoice==='function'&&!__reserveVoice(t,dur>=0.6?3:2))return;   // 주선율(melody)은 항상 발음, 대선율·현 베드만 상한
   const f=f2m(midi),peak=Math.max(0.02,(vel/127)*0.30);
   const lp=ctx.createBiquadFilter();lp.type='lowpass';lp.Q.value=0.6;
   lp.frequency.setValueAtTime(Math.min(1700,f*2.4),t);lp.frequency.linearRampToValueAtTime(Math.min(4000,f*4.6),t+0.18); // 더 어둡고 천천히 열림
@@ -1778,9 +1794,10 @@ function violin(t,dur,midi,vel,bus){
   const r=Math.min(0.45,0.22+dur*0.12);
   amp.gain.setValueAtTime(0.0001,t);amp.gain.exponentialRampToValueAtTime(peak,t+0.14);amp.gain.setValueAtTime(peak,t+Math.max(0.14,dur*0.8));amp.gain.exponentialRampToValueAtTime(0.0001,t+dur+r);
   [['sawtooth',-3,0.6],['triangle',4,1.0]].forEach(([w,dt,lvl])=>{const o=ctx.createOscillator(),og=ctx.createGain();o.type=w;o.frequency.value=f;o.detune.value=dt;og.gain.value=lvl;o.connect(og);og.connect(lp);o.start(t);o.stop(t+dur+r+0.05);nodes.push(o);
-    const lfo=ctx.createOscillator();lfo.type='sine';lfo.frequency.value=5.1;const ld=ctx.createGain();
-    ld.gain.setValueAtTime(0.0001,t);ld.gain.linearRampToValueAtTime(10,t+Math.min(0.32,dur*0.55)); // 비브라토 ±10센트, 천천히
-    lfo.connect(ld);ld.connect(o.detune);lfo.start(t);lfo.stop(t+dur+r+0.05);nodes.push(lfo);});}
+    if(dur>=0.6){                                          // 비브라토는 긴 음에만(짧은 음은 안 들림) — CPU 절약: 오실레이터 수 축소로 끊김 완화
+      const lfo=ctx.createOscillator();lfo.type='sine';lfo.frequency.value=5.1;const ld=ctx.createGain();
+      ld.gain.setValueAtTime(0.0001,t);ld.gain.linearRampToValueAtTime(10,t+Math.min(0.32,dur*0.55));
+      lfo.connect(ld);ld.connect(o.detune);lfo.start(t);lfo.stop(t+dur+r+0.05);nodes.push(lfo);}});}
 function drum(type,t,vel){const v=vel/127,B=BUS.drums;
   if(type==='kick'){const o=ctx.createOscillator(),g=ctx.createGain();o.type='sine';o.frequency.setValueAtTime(135,t);o.frequency.exponentialRampToValueAtTime(45,t+0.09);g.gain.setValueAtTime(v*0.95,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.2);o.connect(g);g.connect(B);o.start(t);o.stop(t+0.25);nodes.push(o);}
   else if(type==='snare'){const n=ctx.createBufferSource();n.buffer=noiseBuf;const bp=ctx.createBiquadFilter();bp.type='bandpass';bp.frequency.value=1900;bp.Q.value=0.9;const g=ctx.createGain();g.gain.setValueAtTime(v*0.7,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.14);n.connect(bp);bp.connect(g);g.connect(B);const o=ctx.createOscillator(),g2=ctx.createGain();o.type='triangle';o.frequency.value=180;g2.gain.setValueAtTime(v*0.35,t);g2.gain.exponentialRampToValueAtTime(0.001,t+0.09);o.connect(g2);g2.connect(B);n.start(t);n.stop(t+0.16);o.start(t);o.stop(t+0.1);nodes.push(n,o);}
@@ -1795,31 +1812,43 @@ function playWin(winS,winE,loop,secIdx){
   $('transport').classList.add('playing');$('play').disabled=false;$('play').innerHTML='<span class="dot"></span>정지';{const tr0=headroomTrim();master.gain.value=0.33*tr0;}   // 자동 헤드룸(요약 표시는 제거 — pstat은 오류 표시 전용)
   refreshSecButtons();
   const startAt=()=>{if(gen!==playGen)return;                       // 그새 정지/재시작됐으면 취소
-    const t0=ctx.currentTime+0.12,base=qToSec(winS);               // 클럭이 도는 시점에서 시작점 계산
+    const t0=ctx.currentTime+0.25,base=qToSec(winS);   // 시작 리드타임 확대(초기 스케줄 몰림 완화)               // 클럭이 도는 시점에서 시작점 계산
     const at=q=>Math.max(ctx.currentTime+0.02,t0+(qToSec(q)-base)),ds=n=>Math.max(0.04,qToSec(n.t+n.dur)-qToSec(n.t));
-    const sched=(arr,fn)=>arr.forEach(n=>{if(n.t>=winS-1e-6&&n.t<winE-1e-6)fn(n);});
-    sched(MODEL.tracks.bass,n=>tone('bass',{wave:'triangle',midi:n.midi,t:at(n.t),dur:ds(n),vel:n.vel,lpf:700*(n.atmos?(0.7+0.3*(n.bright??1)):1),lvl:0.85,atk:n.atmos?0.08:0.005,rel:0.1}));
-    let pedIv=[];if(state.pedal&&MODEL.tracks.pedal){let dn=null;MODEL.tracks.pedal.forEach(ev=>{if(ev.val>=64){if(dn==null)dn=ev.t;}else if(dn!=null){pedIv.push([dn,ev.t]);dn=null;}});if(dn!=null)pedIv.push([dn,MODEL.totalQ]);}
+    /* 재생 전용 보이스 리미터 — 폰·저사양 끊김(언더런) 방지. 100ms 창마다 동시 오실레이터 상한. MIDI·내보내기엔 영향 없음(재생만) */
+    const VOICE_CAP=12, voiceWin={};
+    globalThis.__reserveVoice=(tAbs,cost)=>{const w=Math.round(tAbs*10);const cur=voiceWin[w]||0;if(cur>=VOICE_CAP)return false;voiceWin[w]=cur+cost;return true;};
+    // ── 이벤트 수집 → look-ahead 청크 재생: 곡 전체 노드를 한꺼번에 만들지 않아 생성 폭주(끊김) 방지 ──
+    let pedIv=[];if(state.pedal&&MODEL.tracks.pedal){let dn=null;MODEL.tracks.pedal.forEach(ev=>{if(ev.val>=64){if(dn==null)dn=ev.t;}else if(dn!=null){pedIv.push([dn,ev.t]);dn=null;}});if(dn!=null)pedIv.push([dn,winE]);}
     const pedalEndQ=t=>{for(const iv of pedIv){if(t>=iv[0]-1e-6&&t<iv[1]-1e-6)return iv[1];}return null;};
-    const _pc={};MODEL.tracks.piano.forEach(n=>{const k=n.t.toFixed(3);_pc[k]=(_pc[k]||0)+1;});   // 동시 발음 수(코드 크기)
+    const _pc={};MODEL.tracks.piano.forEach(n=>{const k=n.t.toFixed(3);_pc[k]=(_pc[k]||0)+1;});
     const _orch=['epic','animeost'].includes(state.style),_orchPad=(PERF[state.style]||{}).comp==='pad';
-    sched(MODEL.tracks.piano,n=>{const k=_pc[n.t.toFixed(3)]||1;
-      if(_orch){                                                   // 현 베드: 보잉 지속음 + 어택 스웰만큼 선행 트리거(박 정렬 — 네거티브 딜레이)
-        const lead=_orchPad?0.07:0.015;
+    const _gc={};MODEL.tracks.genre.forEach(n=>{const k=n.t.toFixed(3);_gc[k]=(_gc[k]||0)+1;});
+    const evs=[];
+    const push=(n,fn)=>{if(n.t>=winS-1e-6&&n.t<winE-1e-6)evs.push({q:n.t,fire:fn});};
+    MODEL.tracks.bass.forEach(n=>push(n,()=>tone('bass',{wave:'triangle',midi:n.midi,t:at(n.t),dur:ds(n),vel:n.vel,lpf:700*(n.atmos?(0.7+0.3*(n.bright??1)):1),lvl:0.85,atk:n.atmos?0.08:0.005,rel:0.1})));
+    MODEL.tracks.piano.forEach(n=>push(n,()=>{const k=_pc[n.t.toFixed(3)]||1;
+      if(_orch){const lead=_orchPad?0.07:0.015;
         tone('piano',{wave:'sawtooth',midi:n.midi,t:at(n.t)-lead,dur:Math.max(0.3,ds(n)-0.05)+lead,vel:n.vel,lpf:1900,lvl:0.34/Math.sqrt(k),atk:_orchPad?0.12:0.04,rel:_orchPad?0.4:0.22});return;}
       let endQ=n.t+n.dur;const pe=pedalEndQ(n.t);if(pe!=null&&pe>endQ)endQ=pe;
       let ring=qToSec(endQ)-qToSec(n.t);ring=Math.max(0.12,Math.min(n.atmos?9:2.6,ring));
-      tone('piano',{wave:'triangle',midi:n.midi,t:at(n.t),dur:0.03,vel:n.vel,lpf:3400*(n.bright??1),lvl:0.42/Math.sqrt(k),atk:n.atmos?0.09:0.004,rel:ring});});   // 1/√k: 블록 코드(anime 마르카토) 어택 합산 클램프 방지
-    sched(MODEL.tracks.guitar,n=>guitarTone(n,at(n.t),ds(n)));   // 일렉기타 보이스(록=드라이브/클린=슬랩백)
-    sched(MODEL.tracks.melody,n=>violin(at(n.t),ds(n),n.midi,n.vel,n.theme?'lead':'melody'));
-    sched(MODEL.tracks.counter,n=>tone('counter',{wave:'sawtooth',midi:n.midi,t:at(n.t),dur:ds(n),vel:n.vel,lpf:2400,lvl:0.42,atk:0.008,rel:0.14})); // 대선율(클린 신스/기타 질감)
-    sched(MODEL.tracks.drums,n=>drum(n.type,at(n.t),n.vel));
-    sched(MODEL.tracks.drone,n=>drone(at(n.t),ds(n),n.midi,n.vel));
-    const _gc={};MODEL.tracks.genre.forEach(n=>{const k=n.t.toFixed(3);_gc[k]=(_gc[k]||0)+1;});
-    sched(MODEL.tracks.genre,n=>tone('genre',{wave:'triangle',midi:n.midi,t:at(n.t),dur:ds(n),vel:n.vel,lpf:3000,lvl:0.3/Math.sqrt(_gc[n.t.toFixed(3)]||1),atk:0.004,rel:0.12}));   // 합창·스탭 3성 보상
+      tone('piano',{wave:'triangle',midi:n.midi,t:at(n.t),dur:0.03,vel:n.vel,lpf:3400*(n.bright??1),lvl:0.42/Math.sqrt(k),atk:n.atmos?0.09:0.004,rel:ring});}));
+    MODEL.tracks.guitar.forEach(n=>push(n,()=>guitarTone(n,at(n.t),ds(n))));
+    MODEL.tracks.melody.forEach(n=>push(n,()=>violin(at(n.t),ds(n),n.midi,n.vel,n.theme?'lead':'melody')));
+    MODEL.tracks.counter.forEach(n=>push(n,()=>tone('counter',{wave:'sawtooth',midi:n.midi,t:at(n.t),dur:ds(n),vel:n.vel,lpf:2400,lvl:0.42,atk:0.008,rel:0.14})));
+    MODEL.tracks.drums.forEach(n=>push(n,()=>drum(n.type,at(n.t),n.vel)));
+    MODEL.tracks.drone.forEach(n=>push(n,()=>drone(at(n.t),ds(n),n.midi,n.vel)));
+    MODEL.tracks.genre.forEach(n=>push(n,()=>tone('genre',{wave:'triangle',midi:n.midi,t:at(n.t),dur:ds(n),vel:n.vel,lpf:3000,lvl:0.3/Math.sqrt(_gc[n.t.toFixed(3)]||1),atk:0.004,rel:0.12})));
+    evs.sort((a,b)=>a.q-b.q);
     const winSec=qToSec(winE)-base;
-    scheduleBreath(t0,winSec);                                        // 전체 믹스가 호흡(드론 없이도)
-    hi(t0,winS);stopT=setTimeout(()=>{if(loop&&state.loop)playWin(winS,winE,true,secIdx);else stop();},(winSec+(loop?0.05:1.6))*1000);
+    scheduleBreath(t0,winSec);
+    hi(t0,winS);
+    let ei=0;const LOOK=0.6;
+    const pump=()=>{if(gen!==playGen)return;
+      const horizonSec=(ctx.currentTime-t0)+LOOK;
+      while(ei<evs.length){const evSec=qToSec(evs[ei].q)-base;if(evSec>horizonSec)break;evs[ei].fire();ei++;}
+      if(ei<evs.length)schedTimer=setTimeout(pump,25);};
+    pump();
+    stopT=setTimeout(()=>{if(loop&&state.loop)playWin(winS,winE,true,secIdx);else stop();},(winSec+(loop?0.05:1.6))*1000);
   };
   const pr=(ctx.state!=='running'&&ctx.resume)?ctx.resume():null;   // 컨텍스트가 깨어나고 클럭이 돌기 시작한 뒤 스케줄 → 인트로도 정상
   if(pr&&pr.then)pr.then(()=>whenClockLive(startAt)).catch(()=>whenClockLive(startAt));else whenClockLive(startAt);
@@ -1832,7 +1861,7 @@ function hi(t0,winS){const base=qToSec(winS);function tick(){if(!ctx)return;cons
   document.querySelectorAll('.scard,.seg').forEach(el=>el.classList.remove('now'));
   MODEL.sections.forEach((s,i)=>{if(bq>=s.startQ&&bq<s.endQ){document.querySelector(`.scard[data-i="${i}"]`)?.classList.add('now');document.querySelector(`.seg[data-i="${i}"]`)?.classList.add('now');}});
   raf=requestAnimationFrame(tick);}cancelAnimationFrame(raf);tick();}
-function stop(silent){if(stopT){clearTimeout(stopT);stopT=null;}playGen++;nodes.forEach(n=>{try{n.stop();}catch(e){}});nodes=[];
+function stop(silent){if(stopT){clearTimeout(stopT);stopT=null;}if(schedTimer){clearTimeout(schedTimer);schedTimer=null;}playGen++;nodes.forEach(n=>{try{n.stop();}catch(e){}});nodes=[];
   if(raf)cancelAnimationFrame(raf);document.querySelectorAll('.scard,.seg').forEach(el=>el.classList.remove('now'));
   if(!silent){playing=false;playSec=-1;$('transport').classList.remove('playing');$('play').disabled=false;$('play').innerHTML='<span class="dot"></span>재생';{const ps=$('pstat');if(ps)ps.textContent='';}refreshSecButtons();}}
 
