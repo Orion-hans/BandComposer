@@ -1109,7 +1109,11 @@ function arrange(){
     if(_sparkleStyle){     // 스파클 방향: 테마(첫 구간)→변형(중간)→테마 복귀(마지막 구간)
       if(si===_sparkleFirstSi||si===_sparkleLastSi){_SPARKLE_DIR=_SPARKLE_THEME;
         // 테마 복귀 구간(마지막 스파클 구간, 단 첫 구간과 다를 때): 앞 2마디는 피아노 스파클만(극적 비움)
-        if(si===_sparkleLastSi&&si!==_sparkleFirstSi&&nb>=2){const bq=M.q;_sparkleVoids.push([start,start+2*bq]);}
+        if(si===_sparkleLastSi&&si!==_sparkleFirstSi&&nb>=4){const bq=M.q;
+          // 구조: [비움 2마디(피아노만)] + [빌드업 2마디(2박씩 계단식으로 꽉 채움)] → 폭발
+          const voidA=start, buildA=start+2*bq, boom=start+4*bq;
+          const secEnd=start+nb*bq;   // 구간 끝 — 폭발 후 이 구간 끝까지 드럼 유지(김 빠짐 방지)
+          _sparkleVoids.push([voidA,buildA,boom,secEnd]);}
       }
       else if(_sparkleSecs.includes(si)){                                            // 중간 스파클 구간 = 변형(시드로 다른 방향)
         const vr=mul32(((state.melSeed||1)^(si*2654435761))>>>0);const alt=['desc','asc','updown'].filter(d=>d!==_SPARKLE_THEME);
@@ -1290,7 +1294,7 @@ function arrange(){
       // 피아노: 브레이크 동안 홀로. 없으면 직전 화음 하나 넣어 외로운 피아노
       const pianoInBreak=MODEL.tracks.piano.filter(n=>n.t>=a-1e-6&&n.t<b-1e-6);
       if(pianoInBreak.length===0){const prev=MODEL.tracks.piano.filter(n=>n.t<a).sort((x,y)=>y.t-x.t)[0];
-        if(prev)[0,4,7].forEach(iv=>MODEL.tracks.piano.push({t:a,midi:prev.midi+iv,vel:52,d:2}));}
+        if(prev)[0,4,7].forEach(iv=>MODEL.tracks.piano.push({t:a,midi:prev.midi+iv,vel:52,dur:2}));}
       // 심벌 크레셴도: 브레이크 2박 동안 점점 커지며 폭발 예고. 오케 계열은 스네어롤(팀파니/심벌), 밴드는 하이햇
       if(MODEL.tracks.drums){const orchStyle=['epic','animeost','disney','animerock'].includes(state.style);
         const rollType=orchStyle?'snare':'hat';
@@ -1301,43 +1305,161 @@ function arrange(){
   // ── 스파클 테마 비움: 피아노 스파클만 남기고 비움 → 끝 2박 빌드업(에너지 모으기) → 다음 마디 첫박 폭발 ──
   if(_sparkleVoids.length){
     const voidMute=['bass','guitar','drums','melody','counter','lead','genre','drone'];
-    _sparkleVoids.forEach(([a,b])=>{
-      const buildStart=b-2;   // 비움 끝 2박은 빌드업 존(멜로디 고조 + 드럼 크레셴도)
-      // (1) 비움 구간: 피아노 외 전부 제거. 단 buildStart 이후는 빌드업으로 다시 채움
-      voidMute.forEach(tr=>{if(!MODEL.tracks[tr])return;
-        MODEL.tracks[tr]=MODEL.tracks[tr].filter(n=>{if(n.t>=a-1e-6&&n.t<b-1e-6)return false;
-          if(n.t<a&&n.t+(n.d||0)>a)n.d=Math.max(0.05,a-n.t);return true;});});
-      // (2) 빌드업 존(buildStart~b): 팀파니 롤 + 심벌 스웰 크레셴도 + 멜로디 상승 → 폭발 첫박 그란카사·크래시
-      const orchStyle=['epic','animeost','disney','animerock'].includes(state.style);
-      if(MODEL.tracks.drums){
-        if(orchStyle){
-          // 팀파니 롤: 2박 동안 16분으로 점점 세게(tom1=팀파니). 오케 웅장함
-          for(let k=0;k<8;k++)MODEL.tracks.drums.push({t:buildStart+(k/8)*2,type:'tom1',vel:36+Math.floor(k/8*54)});
-          // 심벌 스웰: 롱 크레셴도 느낌으로 몇 점(crash) 겹쳐 올림
-          [0,0.75,1.3,1.7].forEach((off,i)=>MODEL.tracks.drums.push({t:buildStart+off,type:'crash',vel:30+i*14}));
-        } else {
-          for(let k=0;k<8;k++)MODEL.tracks.drums.push({t:buildStart+(k/8)*2,type:'hat',vel:34+Math.floor(k/8*58)});
+    const orchStyle=['epic','animeost','disney','animerock'].includes(state.style);
+    _sparkleVoids.forEach(([voidA,buildA,boom,secEnd])=>{
+      // (0) 브레이크 직전 정점(voidA-4 ~ voidA, 마지막 1마디): 미친듯이 몰아쳐 최고조 찍고 → 뚝 끊기(완전 정적)
+      const climaxA=voidA-4;
+      if(climaxA>=0){
+        // 기존 노트 벨로 대폭 부스트(마지막 1마디, 뒤로 갈수록 더 세게)
+        ['piano','bass','guitar','melody','counter','lead','genre'].forEach(tr=>{if(!MODEL.tracks[tr])return;
+          MODEL.tracks[tr].forEach(n=>{if(n.t>=climaxA-1e-6&&n.t<voidA-1e-6){const prog=(n.t-climaxA)/4;
+            n.vel=Math.min(127,Math.round(n.vel*(1.12+prog*0.25)+6+prog*12));}});});
+        if(MODEL.tracks.drums){
+          // 팀파니+스네어 필: 1마디 동안 8분→16분→32분 가속 몰이(뒤로 갈수록 미친듯이)
+          for(let t=0;t<2;t+=0.5){const p=t/4;MODEL.tracks.drums.push({t:climaxA+t,type:'snare',vel:Math.round(74+p*40)});
+            if(orchStyle)MODEL.tracks.drums.push({t:climaxA+t,type:'tom1',vel:Math.round(70+p*40)});}
+          for(let t=2;t<3;t+=0.25){const p=t/4;MODEL.tracks.drums.push({t:climaxA+t,type:'snare',vel:Math.round(74+p*46)});
+            if(orchStyle)MODEL.tracks.drums.push({t:climaxA+t,type:'tom1',vel:Math.round(70+p*46)});}
+          for(let t=3;t<4;t+=0.125){const p=t/4;MODEL.tracks.drums.push({t:climaxA+t,type:'snare',vel:Math.round(80+p*46)});
+            if(orchStyle)MODEL.tracks.drums.push({t:climaxA+t,type:'tom1',vel:Math.round(78+p*48)});}
+          // 킥도 매 박 강하게
+          for(let k=0;k<4;k++)MODEL.tracks.drums.push({t:climaxA+k,type:'kick',vel:Math.round(92+k*6)});
+          // 심벌 연타(정점 강조, 점점 세게)
+          [0,1,2,3].forEach((off,i)=>MODEL.tracks.drums.push({t:climaxA+off,type:'crash',vel:Math.round(96+i*7)}));
+          MODEL.tracks.drums.push({t:voidA-0.125,type:'crash',vel:125});   // 브레이크 직전 마지막 초강타(끊기기 직전)
+          MODEL.tracks.drums.push({t:voidA-0.125,type:'kick',vel:120});
         }
       }
-      if(MODEL.tracks.melody){                                   // 멜로디: 2박 동안 상승 스케일(고조)로 긴장
-        const pv=MODEL.tracks.piano.filter(n=>n.t<buildStart).sort((x,y)=>y.t-x.t)[0];
-        let m0=pv?pv.midi:72;while(m0<67)m0+=12;while(m0>76)m0-=12;
-        const steps=[0,2,4,5,7];                                 // 상승(장음계 근사)
-        for(let k=0;k<5;k++)MODEL.tracks.melody.push({t:buildStart+k*(2/5),midi:m0+steps[k],vel:48+k*9,d:2/5*0.9});
-      }
-      // (2b) 도미넌트 페달: 빌드업 2박에 폭발 코드의 V(5도 아래) 베이스를 깔아 긴장 → 첫박 토닉 해결
-      const expBass=MODEL.tracks.bass.filter(n=>n.t>=b-1e-6&&n.t<b+1).sort((x,y)=>x.t-y.t)[0];
-      if(MODEL.tracks.bass&&expBass){
-        let dom=expBass.midi-5;while(dom<28)dom+=12;while(dom>43)dom-=12;   // 완전5도 아래 = 도미넌트 근음
-        MODEL.tracks.bass.push({t:buildStart,midi:dom,vel:70,d:2*0.95});    // 도미넌트 페달(2박 지속)
-      }
-      // (3) 폭발 첫박(b): 그란카사 + 심벌 크래시로 웅장하게 터뜨림(오케)
+      
+// (1) 비움 2마디(voidA~buildA): 피아노 스파클만 남기고 전부 제거
+      voidMute.forEach(tr=>{if(!MODEL.tracks[tr])return;
+        MODEL.tracks[tr]=MODEL.tracks[tr].filter(n=>{if(n.t>=voidA-1e-6&&n.t<buildA-1e-6)return false;
+          if(n.t<voidA&&n.t+(n.d||0)>voidA)n.d=Math.max(0.05,voidA-n.t);return true;});});
+      // 빌드업 2마디(buildA~boom): 기존 노트도 일단 비우고(피아노 제외) 계단식으로 다시 채움
+      voidMute.forEach(tr=>{if(!MODEL.tracks[tr])return;
+        MODEL.tracks[tr]=MODEL.tracks[tr].filter(n=>!(n.t>=buildA-1e-6&&n.t<boom-1e-6));});
+      // (2) 빌드업 2마디(8박): 악기가 바로바로 계속 쌓이며 밀도·세기가 미친듯이 증가 → 폭발
+      const domRootOf=()=>{const eb=MODEL.tracks.bass.filter(n=>n.t>=boom-1e-6&&n.t<boom+1).sort((x,y)=>x.t-y.t)[0];
+        if(!eb)return 33;let d=eb.midi-5;while(d<28)d+=12;while(d>43)d-=12;return d;};
+      const dom=domRootOf();
+      const TOT=boom-buildA;                          // 8박
+      // 팀파니: 전 구간 관통. 가속(8분→16분→32분→64분) + 강한 크레셴도(44→118), 뒤로 갈수록 폭주
       if(MODEL.tracks.drums&&orchStyle){
-        MODEL.tracks.drums.push({t:b,type:'kick',vel:110});      // 그란카사 강타
-        MODEL.tracks.drums.push({t:b,type:'crash',vel:104});     // 심벌 크래시
+        const seg=[[0,2,0.5],[2,4,0.25],[4,6,0.125],[6,8,0.0625]];   // 점점 미친듯이 촘촘
+        seg.forEach(([s0,s1,gap])=>{for(let t=s0;t<s1-1e-6;t+=gap){const prog=t/TOT;
+          MODEL.tracks.drums.push({t:buildA+t,type:'tom1',vel:Math.min(120,Math.round(44+prog*prog*90))});}});
+      } else if(MODEL.tracks.drums){
+        const seg=[[0,2,0.25],[2,4,0.125],[4,8,0.0625]];
+        seg.forEach(([s0,s1,gap])=>{for(let t=s0;t<s1-1e-6;t+=gap){const prog=t/TOT;
+          MODEL.tracks.drums.push({t:buildA+t,type:'hat',vel:Math.min(118,Math.round(34+prog*prog*84))});}});
+      }
+      // 베이스(도미넌트 페달): 1박째부터 바로 진입, 매 박 강하게 계속 쌓임 + 저역 두께
+      if(MODEL.tracks.bass){
+        for(let k=0;k<8;k++)MODEL.tracks.bass.push({t:buildA+k,midi:dom,vel:Math.round(58+k/8*52),dur:0.98});
+        MODEL.tracks.bass.push({t:buildA,midi:dom-12,vel:68,dur:TOT*0.95});   // 저역 페달 지속
+        // 뒤 2박: 베이스도 8분으로 몰이(폭발 직전 긴장)
+        for(let t=6;t<8;t+=0.5)MODEL.tracks.bass.push({t:buildA+t,midi:dom,vel:Math.round(96+(t-6)/2*24),dur:0.48});
+      }
+      // 킥·스네어: 1박째부터 진입해 계속 촘촘해짐(밴드가 빨리 차오름)
+      if(MODEL.tracks.drums){
+        for(let k=1;k<8;k++)MODEL.tracks.drums.push({t:buildA+k,type:'kick',vel:Math.round(70+(k-1)/6*48)});
+        // 스네어: 2박째 8분 → 5박째 16분 → 7박째 32분 몰이(가속)
+        for(let t=2;t<5;t+=0.5)MODEL.tracks.drums.push({t:buildA+t,type:'snare',vel:Math.round(66+(t-2)/3*20)});
+        for(let t=5;t<7;t+=0.25)MODEL.tracks.drums.push({t:buildA+t,type:'snare',vel:Math.round(86+(t-5)/2*22)});
+        for(let t=7;t<8;t+=0.125)MODEL.tracks.drums.push({t:buildA+t,type:'snare',vel:Math.round(108+(t-7)*16)});
+      }
+      // 심벌 스웰: 1박째부터 점점 자주 겹쳐 올림(더 촘촘)
+      if(MODEL.tracks.drums&&orchStyle){
+        [1,2.5,3.5,4.25,5,5.5,6,6.5,7,7.35,7.7].forEach((off,i,arr)=>MODEL.tracks.drums.push({t:buildA+off,type:'crash',vel:Math.round(38+i/arr.length*80)}));
+      }
+      // 멜로디: 1박째부터 상승 시작 — 폭발 토닉 기준 장음계로 올라가 해결감과 조성 일치(음악적)
+      if(MODEL.tracks.melody){
+        const tonicPc=(dom+5)%12;                            // 토닉 = 도미넌트 완전4도 위
+        let m0=60+tonicPc;while(m0<60)m0+=12;while(m0>68)m0-=12;   // 토닉에서 시작
+        const steps=[0,2,4,5,7,9,11,12,14,16,17,19,21,24];   // 토닉 장음계 2옥타브 상승(도레미파솔라시도...)
+        for(let k=0;k<14;k++)MODEL.tracks.melody.push({t:buildA+1+k*0.5,midi:m0+steps[k],vel:Math.round(52+k/14*54),dur:0.5*0.9});
+      }
+      // 기타/현 트레몰로: 3박째부터 두께 추가(더 일찍, 폭발 직전 꽉 참)
+      if(MODEL.tracks.guitar){
+        const pc=MODEL.tracks.piano.filter(n=>n.t>=buildA&&n.t<buildA+1).sort((x,y)=>x.midi-y.midi);
+        const gm=pc.length?pc[Math.floor(pc.length/2)].midi:60;let g=gm;while(g<52)g+=12;while(g>64)g-=12;
+        for(let t=3;t<8;t+=0.25)MODEL.tracks.guitar.push({t:buildA+t,midi:g,vel:Math.round(48+(t-3)/5*54),dur:0.24});
+      }
+      // 대선율/현 상성부: 5박째부터 지속 화음(오케 두께 폭발적으로)
+      if(MODEL.tracks.counter){
+        const dom5=dom+7+12;   // 도미넌트 5도
+        for(let t=5;t<8;t+=1)MODEL.tracks.counter.push({t:buildA+t,midi:dom5,vel:Math.round(60+(t-5)/3*40),dur:0.98});
+      }
+      // 하프 글리산도(트렌드 정석): 폭발 직전 1.5박 동안 토닉 장음계 상행 글리스 → 폭발로 쏟아짐
+      if(MODEL.tracks.genre){
+        const tonicPc=(dom+5)%12;const sc=[0,2,4,5,7,9,11];
+        let gm=48+tonicPc;const NG=12;             // 1.5박 동안 12음 급상행(글리산도)
+        for(let k=0;k<NG;k++){const deg=sc[k%7]+12*Math.floor(k/7);
+          MODEL.tracks.genre.push({t:boom-1.5+k*(1.5/NG),midi:gm+deg,vel:Math.round(56+k/NG*40),dur:0.13});}
+      }
+      
+// (3) 폭발 첫박(boom): 그란카사 + 심벌 크래시로 웅장하게 터뜨림 + 도미넌트→토닉 해결
+      if(MODEL.tracks.drums&&orchStyle){
+        MODEL.tracks.drums.push({t:boom-0.25,type:'snare',vel:96});
+        MODEL.tracks.drums.push({t:boom-0.125,type:'kick',vel:104});
+        MODEL.tracks.drums.push({t:boom,type:'kick',vel:124});
+        MODEL.tracks.drums.push({t:boom+0.015,type:'kick',vel:118});
+        MODEL.tracks.drums.push({t:boom+0.03,type:'kick',vel:112});
+        MODEL.tracks.drums.push({t:boom,type:'crash',vel:122});
+        MODEL.tracks.drums.push({t:boom,type:'crash',vel:114});
+        MODEL.tracks.drums.push({t:boom+0.01,type:'crash',vel:106});
+        MODEL.tracks.drums.push({t:boom,type:'tom1',vel:120});
+        MODEL.tracks.drums.push({t:boom+0.25,type:'tom1',vel:100});
+        MODEL.tracks.drums.push({t:boom,type:'snare',vel:112});
+        MODEL.tracks.drums.push({t:boom+0.5,type:'crash',vel:92});
+        MODEL.tracks.drums.push({t:boom+1,type:'crash',vel:98});
+        MODEL.tracks.drums.push({t:boom+2,type:'crash',vel:94});
+      }
+      let boomRoot=null;
+      if(MODEL.tracks.bass){const eb=MODEL.tracks.bass.filter(n=>n.t>=boom-1e-6&&n.t<boom+0.5).sort((x,y)=>x.t-y.t)[0];
+        if(eb){eb.vel=127;boomRoot=eb.midi;
+          MODEL.tracks.bass.push({t:boom,midi:eb.midi-12,vel:118,dur:2.9});
+          let sub=eb.midi-24;while(sub<24)sub+=12;MODEL.tracks.bass.push({t:boom,midi:sub,vel:108,dur:2.9});}}
+      if(boomRoot!=null){
+        const triad=[0,4,7].map(iv=>{let m=boomRoot+12+iv;while(m<55)m+=12;while(m>79)m-=12;return m;});
+        if(MODEL.tracks.guitar){triad.forEach(m=>MODEL.tracks.guitar.push({t:boom,midi:m,vel:120,dur:0.9}));
+          MODEL.tracks.guitar.push({t:boom+2,midi:triad[0],vel:104,dur:0.9});}
+        if(MODEL.tracks.counter){const top=triad[2]+5;MODEL.tracks.counter.push({t:boom,midi:top,vel:118,dur:2.9});}
+      }
+      if(MODEL.tracks.melody&&boomRoot!=null){
+        let hi=boomRoot+12+12;while(hi<79)hi+=12;while(hi>91)hi-=12;
+        MODEL.tracks.melody.push({t:boom,midi:hi,vel:122,dur:2.8});}
+      ['piano','guitar','melody','counter','lead','genre'].forEach(tr=>{if(!MODEL.tracks[tr])return;
+        MODEL.tracks[tr].forEach(n=>{if(Math.abs(n.t-boom)<0.15)n.vel=Math.min(127,Math.round(n.vel*1.22+14));});});
+      // (4) 폭발 후 드럼 유지(boom~secEnd): 폭발 에너지가 안 꺼지게 풀 그루브를 깖(김 빠짐 방지)
+      if(MODEL.tracks.drums&&secEnd&&secEnd>boom+1){
+        const existing=MODEL.tracks.drums.filter(n=>n.t>=boom+1e-6&&n.t<secEnd-1e-6);
+        const haveKick=t=>existing.some(n=>n.type==='kick'&&Math.abs(n.t-t)<0.12);
+        const haveSn=t=>existing.some(n=>n.type==='snare'&&Math.abs(n.t-t)<0.12);
+        for(let t=boom;t<secEnd-1e-6;t+=1){
+          const beatInBar=Math.round(t-boom)%4;
+          if((beatInBar===0||beatInBar===2)&&!haveKick(t))MODEL.tracks.drums.push({t,type:'kick',vel:96});
+          if((beatInBar===1||beatInBar===3)&&!haveSn(t))MODEL.tracks.drums.push({t,type:'snare',vel:88});
+          if(orchStyle)for(let h=0;h<2;h++)MODEL.tracks.drums.push({t:t+h*0.5,type:'tom1',vel:70});
+        }
+        for(let t=boom;t<secEnd-1e-6;t+=4)MODEL.tracks.drums.push({t,type:'crash',vel:90});
+      }
+      // (5) 폭발 후 브라스/혼 유지(boom~secEnd): 웅장함이 안 꺼지게 브라스 스탭+혼을 계속 유지
+      if(boomRoot!=null&&secEnd&&secEnd>boom+1){
+        const triad=[0,4,7].map(iv=>{let m=boomRoot+12+iv;while(m<55)m+=12;while(m>79)m-=12;return m;});
+        // 브라스 스탭(기타): 매 박 리듬 히트로 유지(폭발 첫박 제외 — 이미 있음)
+        if(MODEL.tracks.guitar){for(let t=boom+2;t<secEnd-1e-6;t+=2){   // 2박마다 스탭
+          triad.forEach(m=>MODEL.tracks.guitar.push({t,midi:m,vel:98,dur:1.4}));}}
+        // 혼 상성부(카운터): 마디마다 지속 화음으로 유지(웅장 베드)
+        if(MODEL.tracks.counter){const top=triad[2]+5;for(let t=boom+3;t<secEnd-1e-6;t+=3){   // 3박마다 갱신(끊김 없이)
+          MODEL.tracks.counter.push({t,midi:top,vel:100,dur:2.9});}}
+        // 멜로디 상성부: 폭발 후에도 높은 음역 유지(코러스가 붙기 전 공백 방지)
+        if(MODEL.tracks.melody){let hi=boomRoot+12+7;while(hi<76)hi+=12;while(hi>86)hi-=12;
+          for(let t=boom+2;t<secEnd-1e-6;t+=2)MODEL.tracks.melody.push({t,midi:hi,vel:88,dur:1.8});}
       }
     });
   }
+  
   return MODEL;
 }
 function qToSec(q){const S=MODEL.sections;if(!S.length)return q*(60/MODEL.bpm);
@@ -2916,8 +3038,40 @@ function logicGuide(){
   extraGuideTracks().forEach(nm=>line(`· ${nm} (빈 트랙): 이름의 악기 로드`));
   line('');
 
+  // 시네마틱 스파클(animeost·disney): 브레이크·빌드업·폭발의 EQ/FX 처리
+  if(['animeost','disney'].includes(state.style)){
+    line('━━━━ ⑩ 시네마틱 스파클 (브레이크→빌드업→폭발) ━━━━');
+    line('※ 곡 후반 테마 복귀부에 자동 생성됨. 아래 이벤트가 기존 트랙에 얹혀 있으니 해당 트랙에서 처리:');
+    line('');
+    line('· 피아노 스파클(비움 2마디, 피아노 홀로):');
+    line('    Channel EQ → HPF 100Hz(band1) / 5kHz High Shelf(band7) +2dB(반짝임)');
+    line('    Reverb: Bus1 Plate 2.2s, Send -12dB (홀로 있을 때 공간감)');
+    line('· 팀파니 롤(빌드업, 드럼 트랙 tom1=음정 저역 북):');
+    line('    Channel EQ → 60~80Hz(band2) +3dB(울림), 400Hz(band4) -3dB(먹먹함 제거), 3kHz(band6) +2dB(어택)');
+    line('    Compressor: Ratio 3:1 / Attack 20ms / Release 120ms (롤 다이내믹 정리)');
+    line('· 스트링/기타 트레몰로(빌드업 3박~, 두께):');
+    line('    Channel EQ → HPF 120Hz / 800Hz(band4) -2dB / 8kHz High Shelf +3dB(공기감)');
+    line('    Expression CC11로 크레셴도 라이드, Reverb Bus1 Hall Send -10dB');
+    line('· 대선율 현 상성부(빌드업 5박~, 지속 화음):');
+    line('    Channel EQ → 250Hz(band3) -2dB / 4kHz(band6) +2dB, 넓은 Stereo Spread');
+    line('· 폭발 첫박(그란카사 3연타+심벌 3장+팀파니+브라스 스탭+서브+멜로디 최고음):');
+    line('    그란카사(kick 3연타): 50Hz(band2) +4dB / 3kHz +2dB(펀치), Limiter로 피크 제어');
+    line('    심벌(crash 3장): 10kHz High Shelf +3dB(광채), HPF 300Hz');
+    line('    서브 베이스(근음 2옥타브 아래): 30~50Hz만 통과, 사인 서브 신스로 교체 권장(초저역 임팩트)');
+    line('    브라스 스탭(기타 트랙, 토닉 3화음): 200Hz(band3) +2dB / 2.5kHz(band5) +3dB(파워), 짧게 게이트');
+    line('    혼 상성부(카운터 트랙, 지속): 1kHz(band4) +2dB, Hall Reverb Send -8dB(웅장)');
+    line('    멜로디 최고음(폭발 정점): 4kHz(band6) +3dB(뚫림), 살짝 새추레이션');
+    line('    Parallel Comp 8:1 GR 12dB로 폭발 순간 밀도 극대화(드럼 버스)');
+    line('    폭발 직전 32분 킥+스네어 프리히트=임팩트 예고 → 볼륨 -6dB로 살짝');
+    line('    폭발 첫 마디 심벌 여운(0.5·1·2박): 자연 감쇠 유지');
+    line('· 폭발 후 유지(구간 끝까지): 드럼 풀 그루브 + 브라스 스탭(2박마다) + 혼 지속 + 멜로디 상성부');
+    line('    브라스 스탭 유지(기타): 폭발과 동일 EQ, 살짝 게이트로 리듬감 / 혼(카운터): Hall Send로 웅장 베드');
+    line('    → 폭발 에너지가 코러스까지 안 꺼지고 이어짐(김 빠짐 방지)');
+    line('');
+  }
   line('━━━━ MIDI에 담긴 것 ━━━━');
   line('음표·보이싱·조표·박자·템포·구간마커·트랙이름·페달(CC64)·익스프레션(CC11)·FX메모(트랙 텍스트).');
+  if(['animeost','disney'].includes(state.style))line('시네마틱 스파클: 브레이크(피아노 홀로)·빌드업(팀파니 가속 롤+스트링+멜로디 상승)·폭발(그란카사 더블+심벌 다중+팀파니 강타)·폭발후 드럼 유지 — 전부 해당 트랙에 노트로 반영됨.');
   if(med){
     line('');line('━━━━ 사운드 명상 ━━━━');
     if(state.breathAlign){const P=BREATH_PATTERNS[state.breathPattern];
