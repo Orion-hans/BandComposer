@@ -1395,7 +1395,7 @@ function arrange(){
       if(MODEL.tracks.guitar){
         const pc=MODEL.tracks.piano.filter(n=>n.t>=buildA&&n.t<buildA+1).sort((x,y)=>x.midi-y.midi);
         const gm=pc.length?pc[Math.floor(pc.length/2)].midi:60;let g=gm;while(g<52)g+=12;while(g>64)g-=12;
-        for(let t=3;t<8;t+=0.25)MODEL.tracks.guitar.push({t:buildA+t,midi:g,vel:Math.round(48+(t-3)/5*54),dur:0.24});
+        for(let t=3;t<8;t+=0.25)MODEL.tracks.guitar.push({t:buildA+t,midi:g,vel:Math.round(48+(t-3)/5*54),dur:0.24,trem:1});
       }
       // 대선율/현 상성부: 5박째부터 지속 화음(오케 두께 폭발적으로)
       if(MODEL.tracks.counter){
@@ -2849,8 +2849,40 @@ function exportAll(){arrange();
   const tr=[tempoTrack(),
     noteTrack(MODEL.tracks.piano,0,im('piano').p,false,pianoExpr(),im('piano').n,trackFX('piano')),
     noteTrack(MODEL.tracks.bass,1,im('bass').p,false,bassExpr(MODEL.tracks.bass),im('bass').n,trackFX('bass')),
-    noteTrack(MODEL.tracks.guitar,2,im('guitar').p,false,guitarOrBrassExpr(MODEL.tracks.guitar),im('guitar').n,trackFX('guitar')),
-    noteTrack(MODEL.tracks.drums,9,null,true,null,im('drums').n,trackFX('drums'))];
+    ];
+  // 기타 트랙: 오케 스타일은 기타/브라스 스탭/현 트레몰로 3분리(로직에서 각각 악기 로드)
+  {
+    const isOrchG=['epic','animeost','disney','animerock'].includes(state.style);
+    const G=MODEL.tracks.guitar||[];
+    if(isOrchG&&G.length){
+      const base=G.filter(n=>!n.cine&&!n.trem);
+      const brass=G.filter(n=>n.cine);
+      const trem=G.filter(n=>n.trem);
+      if(base.length)tr.push(noteTrack(base,2,im('guitar').p,false,guitarOrBrassExpr(base),im('guitar').n,trackFX('guitar')));
+      if(brass.length)tr.push(noteTrack(brass,11,61,false,null,'[파워풀 관악 히트(폭발·피날레)] Brass Section - Stabs',trackFX('guitar')));
+      if(trem.length)tr.push(noteTrack(trem,12,44,false,null,'[긴장 고조 현(빌드업)] Strings - Tremolo',trackFX('melody')));
+    } else if(G.length){
+      tr.push(noteTrack(G,2,im('guitar').p,false,guitarOrBrassExpr(G),im('guitar').n,trackFX('guitar')));
+    }
+  }
+  // 드럼: 오케 스타일은 악기별 트랙 분리(로직에서 팀파니·그란카사·심벌·스네어에 각각 악기 로드) / 일반 스타일은 단일 킷
+  {
+    const isOrch=['epic','animeost','disney','animerock'].includes(state.style);
+    const D=MODEL.tracks.drums||[];
+    if(isOrch&&D.length){
+      const grp=(types)=>D.filter(n=>types.includes(n.type));
+      const timp=grp(['tom1','tom2','tom3']);
+      const cassa=grp(['kick']);
+      const cym=grp(['crash','openhat']);
+      const kit=grp(['snare','hat']);
+      if(timp.length)tr.push(noteTrack(timp,9,null,true,null,'[웅장한 홀 팀파니(롤·강타)] Timpani',trackFX('drums')));
+      if(cassa.length)tr.push(noteTrack(cassa,9,null,true,null,'[초저역 대북(임팩트)] Gran Cassa (Concert Bass Drum)',trackFX('drums')));
+      if(cym.length)tr.push(noteTrack(cym,9,null,true,null,'[금속 광채·긴 여운] Cymbals / Tam-tam',trackFX('drums')));
+      if(kit.length)tr.push(noteTrack(kit,9,null,true,null,'[하이브리드 킷(스네어·햇)] Drum Kit - Snare/Hat',trackFX('drums')));
+    } else if(D.length){
+      tr.push(noteTrack(D,9,null,true,null,im('drums').n,trackFX('drums')));
+    }
+  }
   if(state.enabled.piano&&MODEL.tracks.piano2&&MODEL.tracks.piano2.length)tr.push(noteTrack(MODEL.tracks.piano2,8,0,false,null,'[은은한 배경 오스티나토] 2nd Piano - Arp Theme (soft)',trackFX('piano')));   // 2nd 피아노(ch8)
   const vocal=state.enabled.melody?MODEL.tracks.melody.filter(n=>!n.theme):[];
   if(vocal.length)tr.push(noteTrack(vocal,4,im('melody').p,false,exprEvents(vocal),im('melody').n,trackFX('melody')));
@@ -3267,6 +3299,8 @@ function logicGuide(){
   if(['animeost','disney'].includes(state.style)){
     line('━━━━ ⑩ 시네마틱 스파클 (브레이크→빌드업→폭발) ━━━━');
     line('※ 곡 후반 테마 복귀부에 자동 생성됨. 아래 이벤트가 기존 트랙에 얹혀 있으니 해당 트랙에서 처리:');
+    line('※ 오케 타악은 MIDI에서 4트랙 분리됨: Timpani / Gran Cassa / Cymbals·Tam-tam / Drum Kit(Snare·Hat)');
+    line('   → 로직에서 각 트랙에 해당 악기 로드(팀파니·대북·서스펜디드 심벌·스네어) 후 아래 EQ 적용');
     line('');
     line('· 피아노 스파클(비움 2마디, 피아노 홀로):');
     line('    Channel EQ → HPF 100Hz(band1) / 5kHz High Shelf(band7) +2dB(반짝임)');
