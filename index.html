@@ -1429,14 +1429,20 @@ function arrange(){
           MODEL.tracks.bass.push({t:boom,midi:eb.midi-12,vel:118,dur:2.9});
           let sub=eb.midi-24;while(sub<24)sub+=12;MODEL.tracks.bass.push({t:boom,midi:sub,vel:108,dur:2.9});}}
       if(boomRoot!=null){
-        const triad=[0,4,7].map(iv=>{let m=boomRoot+12+iv;while(m<55)m+=12;while(m>79)m-=12;return m;});
-        if(MODEL.tracks.guitar){triad.forEach(m=>MODEL.tracks.guitar.push({t:boom,midi:m,vel:120,dur:0.9}));
-          MODEL.tracks.guitar.push({t:boom+2,midi:triad[0],vel:104,dur:0.9});}
-        if(MODEL.tracks.counter){const top=triad[2]+5;MODEL.tracks.counter.push({t:boom,midi:top,vel:118,dur:2.9});}
+        // 폭발 첫박 브라스: 그 순간 울리는 보이싱 상위 3음(장/단조 자동 — 고정 장3화음 대신)
+        const sndB=MODEL.tracks.piano.filter(p=>!p.atmos&&p.t<=boom+0.05&&p.t+(p.dur||0.5)>boom-0.05).map(p=>p.midi);
+        const uB=[...new Set(sndB)].sort((a,b)=>a-b);const pk=[];
+        for(let k2=uB.length-1;k2>=0&&pk.length<3;k2--){const x=uB[k2];if(pk.every(q=>Math.abs(q-x)>=3))pk.push(x);}
+        pk.sort((a,b)=>a-b);
+        let triad;
+        if(pk.length>=3){let sh=0;while(pk[0]+sh<55)sh+=12;while(pk[pk.length-1]+sh>79)sh-=12;triad=pk.map(x=>x+sh);}
+        else{triad=[0,4,7].map(iv=>{let m=boomRoot+12+iv;while(m<55)m+=12;while(m>79)m-=12;return m;});}
+        if(MODEL.tracks.guitar){triad.forEach(m=>MODEL.tracks.guitar.push({t:boom,midi:m,vel:120,dur:0.9,cine:1}));
+          MODEL.tracks.guitar.push({t:boom+2,midi:triad[0],vel:104,dur:0.9,cine:1});}
+        if(MODEL.tracks.counter){let top=triad[triad.length-1]+12;while(top>84)top-=12;MODEL.tracks.counter.push({t:boom,midi:top,vel:118,dur:1.9,cine:1});}
+        if(MODEL.tracks.melody){let hi=triad[triad.length-1]+12;while(hi<79)hi+=12;while(hi>91)hi-=12;
+          MODEL.tracks.melody.push({t:boom,midi:hi,vel:122,dur:1.9,cine:1});}
       }
-      if(MODEL.tracks.melody&&boomRoot!=null){
-        let hi=boomRoot+12+12;while(hi<79)hi+=12;while(hi>91)hi-=12;
-        MODEL.tracks.melody.push({t:boom,midi:hi,vel:122,dur:2.8});}
       ['piano','guitar','melody','counter','lead','genre'].forEach(tr=>{if(!MODEL.tracks[tr])return;
         MODEL.tracks[tr].forEach(n=>{if(Math.abs(n.t-boom)<0.15)n.vel=Math.min(127,Math.round(n.vel*1.22+14));});});
       // (4) 폭발 후 드럼 유지(boom~secEnd): 폭발 에너지가 안 꺼지게 풀 그루브를 깖(김 빠짐 방지)
@@ -1454,16 +1460,28 @@ function arrange(){
       }
       // (5) 폭발 후 브라스/혼 유지(boom~secEnd): 웅장함이 안 꺼지게 브라스 스탭+혼을 계속 유지
       if(boomRoot!=null&&secEnd&&secEnd>boom+1){
-        const triad=[0,4,7].map(iv=>{let m=boomRoot+12+iv;while(m<55)m+=12;while(m>79)m-=12;return m;});
-        // 브라스 스탭(기타): 매 박 리듬 히트로 유지(폭발 첫박 제외 — 이미 있음)
-        if(MODEL.tracks.guitar){for(let t=boom+2;t<secEnd-1e-6;t+=2){   // 2박마다 스탭
-          triad.forEach(m=>MODEL.tracks.guitar.push({t,midi:m,vel:98,dur:1.4}));}}
-        // 혼 상성부(카운터): 마디마다 지속 화음으로 유지(웅장 베드)
-        if(MODEL.tracks.counter){const top=triad[2]+5;for(let t=boom+3;t<secEnd-1e-6;t+=3){   // 3박마다 갱신(끊김 없이)
-          MODEL.tracks.counter.push({t,midi:top,vel:100,dur:2.9});}}
-        // 멜로디 상성부: 폭발 후에도 높은 음역 유지(코러스가 붙기 전 공백 방지)
-        if(MODEL.tracks.melody){let hi=boomRoot+12+7;while(hi<76)hi+=12;while(hi>86)hi-=12;
-          for(let t=boom+2;t<secEnd-1e-6;t+=2)MODEL.tracks.melody.push({t,midi:hi,vel:88,dur:1.8});}
+        // 매 스탭마다 '그 순간 울리는 보이싱'에서 상위 3음(서로 3반음 이상) 선택 → 코드가 바뀌어도 불협 없음
+        const chordAt=t=>{
+          const snd=MODEL.tracks.piano.filter(p=>!p.atmos&&p.t<=t+0.05&&p.t+(p.dur||0.5)>t-0.05).map(p=>p.midi);
+          const u=[...new Set(snd)].sort((a,b)=>a-b);
+          const picked=[];
+          for(let k2=u.length-1;k2>=0&&picked.length<3;k2--){const x=u[k2];if(picked.every(q=>Math.abs(q-x)>=3))picked.push(x);}
+          picked.sort((a,b)=>a-b);
+          if(picked.length<3){let m=boomRoot+12;while(m<55)m+=12;while(m>79)m-=12;return [m,m+4,m+7];}
+          let sh=0;while(picked[0]+sh<55)sh+=12;while(picked[picked.length-1]+sh>79)sh-=12;
+          return picked.map(x=>x+sh);
+        };
+        // 브라스 스탭(기타): 2박마다, 그 순간 코드로. dur은 코드 변화 주기(1박) 안 — 다음 코드 침범 금지
+        if(MODEL.tracks.guitar){for(let t=boom+2;t<secEnd-1e-6;t+=2){
+          chordAt(t).forEach(m=>MODEL.tracks.guitar.push({t,midi:m,vel:98,dur:0.9,cine:1}));}}
+        // 혼 상성부(카운터): 2박마다, 그 순간 코드 최상성음 옥타브(같은 pc → 항상 협화)
+        if(MODEL.tracks.counter){for(let t=boom+2;t<secEnd-1e-6;t+=2){
+          const c=chordAt(t);let top=c[c.length-1]+12;while(top>84)top-=12;
+          MODEL.tracks.counter.push({t,midi:top,vel:100,dur:0.95,cine:1});}}
+        // 멜로디 상성부: 2박마다, 그 순간 코드 최상성음(높은 음역, 1박 이내)
+        if(MODEL.tracks.melody){for(let t=boom+2;t<secEnd-1e-6;t+=2){
+          const c=chordAt(t);let hi=c[c.length-1]+12;while(hi<76)hi+=12;while(hi>86)hi-=12;
+          MODEL.tracks.melody.push({t,midi:hi,vel:88,dur:0.9,cine:1});}}
       }
     });
   }
@@ -1483,6 +1501,22 @@ function arrange(){
       return false;                                                               // 대체 불가 → 쉼
     });
   }
+  // ── 시네마틱 추가 노트(cine:1 — 폭발 브라스·혼·멜로디) 불협 회피: 울리는 피아노와 반음 충돌 시 옥타브 내 협화음으로 교체, 불가하면 삭제 ──
+  ['guitar','counter','melody'].forEach(trk=>{
+    if(!MODEL.tracks[trk])return;
+    const others=[...MODEL.tracks.piano.filter(p=>!p.atmos)];
+    const clash=(m,list)=>list.some(p=>{const iv=Math.abs(m-p.midi)%12;return iv===1||iv===11;});
+    MODEL.tracks[trk]=MODEL.tracks[trk].filter(n=>{
+      if(!n.cine)return true;
+      const s0=others.filter(p=>p.t<n.t+(n.dur||1)-0.05&&p.t+(p.dur||0.5)>n.t+0.05);
+      if(!clash(n.midi,s0))return true;
+      // 그 순간 울리는 피아노 음들을 이 노트 음역으로 옮겨 대체 시도
+      const cands=[...new Set(s0.map(p=>{let m=p.midi;while(m<n.midi-6)m+=12;while(m>n.midi+6)m-=12;return m;}))]
+        .sort((a,b)=>Math.abs(a-n.midi)-Math.abs(b-n.midi));
+      for(const c of cands){if(!clash(c,s0)){n.midi=c;return true;}}
+      return false;
+    });
+  });
   
   return MODEL;
 }
