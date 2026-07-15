@@ -502,12 +502,12 @@ const STYLES=[
    {name:'Trailer · i–bVI–bIII–bVII',r:['i','bVI','bIII','bVII']},
    {name:'Rising · i–iv–bVI–V',r:['i','iv','bVI','V']},
    {name:'Heroic · i–bVII–bVI–V',r:['i','bVII','bVI','V']}]},
- {id:'animeost',name:'Anime Orchestra (OST)',tempo:[80,124],dur:[240,360],groove:'animeorch',hint:'벅찬 오케스트라 애니 OST — 감동적이고 장대한.',pool:[
+ {id:'animeost',name:'Anime Orchestra (OST)',tempo:[80,124],dur:[300,390],groove:'animeorch',hint:'벅찬 오케스트라 애니 OST — 감동적이고 장대한.',pool:[
    {name:'Royal Sky · IVM7–V–iii7–vi',r:['IVM7','V','iii7','vi']},
    {name:'Soar · I–V–vi–IV',r:['I','V','vi','IV']},
    {name:'Adventure · I–IV–V–vi',r:['I','IV','V','vi']},
    {name:'Emotional · vi–IV–I–V',r:['vi','IV','I','V']}]},
-  {id:'disney',name:'Disney Orchestra (Musical)',tempo:[125,142],dur:[210,300],groove:'disneyorch',hint:'디즈니 뮤지컬 넘버 — 피아노 시작·웅장한 오케·감정의 해방(자동 전조).',pool:[
+  {id:'disney',name:'Disney Orchestra (Musical)',tempo:[125,142],dur:[240,330],groove:'disneyorch',hint:'디즈니 뮤지컬 넘버 — 피아노 시작·웅장한 오케·감정의 해방(자동 전조).',pool:[
    {name:'다짐 · i–VI–III–VII',r:['i','VI','III','VII']},
    {name:'저항 · i–iv–VI–V',r:['i','iv','VI','V']},
    {name:'비상 · i–VI–iv–V',r:['i','VI','iv','V']},
@@ -603,7 +603,8 @@ const PARALLEL_MAJ2MIN={
   'V':'V','V7':'V7','v':'v','v7':'v7',
   'vi':'bVI','vi7':'bVIM7','VIM7':'bVIM7',
   'vii':'bVII','viidim':'bVII','vii7':'bVIIM7','viio':'bVII'
-};
+,
+  'III7':'bIII7','VI7':'bVI7','II7':'bII7','viiø':'viio','viiø7':'viio','VII7':'bVII7'};
 const PARALLEL_MIN2MAJ={
   'i':'I','i7':'IM7','iM7':'IM7','iadd9':'Iadd9',
   'iidim':'ii','iim7b5':'ii7',
@@ -612,7 +613,8 @@ const PARALLEL_MIN2MAJ={
   'V':'V','V7':'V7','v':'iii','v7':'iii7',
   'bVI':'vi','bVIM7':'vi7',
   'bVII':'V','bVIIM7':'V7'
-};
+,
+  'bIII7':'III7','bVI7':'VI7','bII7':'II7','bVII7':'VII7'};
 function convertProgMode(romanArr,fromMode,toMode){
   if(fromMode===toMode)return romanArr;
   const map=(fromMode==='major'&&toMode==='minor')?PARALLEL_MAJ2MIN
@@ -639,6 +641,7 @@ let _INTROARP=false;       // 일반 장르 인트로 아르페지오 활성(인
 let _INTROARP_DIR='asc';   // 인트로 아르페지오 방향(상행/하행/상하행) — 곡 시드로 랜덤
 let _INTROARP_FIXED=null;  // 인트로 아르페지오 음형(첫 코드로 고정)
 let _P2_FROM=null;         // 2nd 피아노 진입 시점(인트로 끝 + 8마디 뒤) — 초반 부딪힘 방지
+let _outroStart=null;      // 아웃트로 시작 시점 — 피날레(폭발후~아웃트로) 최대 밀도 구간 계산용
 const secMeter=s=>s.meter==='inherit'?globMeter():s.meter;
 const secGroove=s=>(s.groove&&s.groove!=='inherit')?s.groove:grooveId();
 const secTempo=s=>(s.tempo&&s.tempo!=='inherit')?+s.tempo:(+$('bpm').value||92);
@@ -699,7 +702,7 @@ function assignByType(randomize){
     if(!_sMode.lock&&secMode!==_sMode.base){prog=Object.assign({},prog,{r:convertProgMode(prog.r,_sMode.base,secMode)});}
     fillGrid(s,prog);});
   connectLeadins();
-  cadenceShape();                                             // 구간 역할(잇기/맺기)을 진행에 반영
+  cadenceShape();                                             // 구간 역할(잇기/맺기)을 진행에 반영 — 마지막 구간 토닉 클로즈 포함                                             // 구간 역할(잇기/맺기)을 진행에 반영
 }
 const GENTLE_INTRO={ballad:1,jballad:1,worship:1,billie:1,celtic:1,saguk:1,royalroad:1,country:1}; // 절제된 양 끝(쿵쾅대지 않음)
 const grooveForType=(t,rock,energetic)=>t==='Intro'?(energetic?'inherit':(Math.random()<0.5?'rubato':'ballad8'))
@@ -1062,7 +1065,7 @@ function arrange(){
   melRng=mul32((state.melSeed||1)>>>0);melLast=null;MOTIFS=buildMotifs();   // 훅 모티프: 곡당 1회 생성
   {const sr=mul32(((state.melSeed||1)^0x5A5A)>>>0);const dirs=['desc','asc','updown'];   // 스파클 방향을 시드로(곡마다 다르지만 같은 시드=같은 방향)
     _SPARKLE_THEME=dirs[Math.floor(sr()*dirs.length)];_SPARKLE_DIR=_SPARKLE_THEME;_sparkleSecIdx=0;
-    const ir=mul32(((state.melSeed||1)^0x3C3C)>>>0);_INTROARP_DIR=dirs[Math.floor(ir()*dirs.length)];_P2_FROM=null;}   // 일반 장르 인트로 아르페지오 방향(시드 랜덤) + 2nd피아노 진입점 리셋
+    const ir=mul32(((state.melSeed||1)^0x3C3C)>>>0);_INTROARP_DIR=dirs[Math.floor(ir()*dirs.length)];_P2_FROM=null;_outroStart=null;}   // 일반 장르 인트로 아르페지오 방향(시드 랜덤) + 2nd피아노 진입점 리셋
   melRhyMotif=null;melBarSeen=-1;melBarCount=0;melLeapDir=0;
   pRng=mul32((state.humSeed||1)>>>0);pedSegs=[];           // 휴머나이즈 재시드 + 페달 구간 초기화
   curPerf=PERF[state.style]||{bass:'eighths',comp:'block',gtr:'strum'};
@@ -1113,6 +1116,7 @@ function arrange(){
     _SPARKLE_FIXED=null;   // 새 구간 → 스파클 음형 리셋(첫 코드로 다시 고정)
     _INTROARP=(sec.type==='Intro'&&!_sparkleStyle&&state.enabled.piano);_INTROARP_FIXED=null;   // 일반 장르 인트로 아르페지오 on/off
     if(_P2_FROM==null&&sec.type!=='Intro')_P2_FROM=start+8*(M.q||4);   // 2nd피아노: 인트로 직후 8마디 쉬고 진입(부딪힘 방지)
+    if(sec.type==='Outro'&&_outroStart==null)_outroStart=start;         // 피날레 경계 기록
     if(_sparkleStyle){     // 스파클 방향: 테마(첫 구간)→변형(중간)→테마 복귀(마지막 구간)
       if(si===_sparkleFirstSi||si===_sparkleLastSi){_SPARKLE_DIR=_SPARKLE_THEME;
         // 테마 복귀 구간(마지막 스파클 구간, 단 첫 구간과 다를 때): 앞 2마디는 피아노 스파클만(극적 비움)
@@ -1484,6 +1488,71 @@ function arrange(){
           MODEL.tracks.melody.push({t,midi:hi,vel:88,dur:0.9,cine:1});}}
       }
     });
+    // (6) 피날레: 폭발 구간 끝 → 아웃트로 직전까지 곡 최대 밀도로 꽉 채우고, 마지막 몰이 후 릴리즈 → 아웃트로로 빠짐
+    if(_sparkleVoids.length){
+      const lastEnd=_sparkleVoids[_sparkleVoids.length-1][3];
+      let target=_outroStart;
+      if(target==null){let mx=0;Object.keys(MODEL.tracks).forEach(tr=>MODEL.tracks[tr].forEach(n=>{if(n.t>mx)mx=n.t;}));target=mx+1;}
+      if(target>lastEnd+2){
+        const span=target-lastEnd;
+        // 전 악기 벨로 부스트(피날레 = 곡 최대 지점, 진행할수록 더)
+        ['piano','bass','guitar','drums','melody','counter','lead','genre'].forEach(tr=>{if(!MODEL.tracks[tr])return;
+          MODEL.tracks[tr].forEach(n=>{if(n.t>=lastEnd-1e-6&&n.t<target-1e-6){const prog=(n.t-lastEnd)/span;
+            n.vel=Math.min(127,Math.round(n.vel*(1.10+prog*0.08)+5));}});});
+        // 순간 코드 추종 헬퍼(폭발 유지와 동일 원리 — 불협 없음)
+        const chordAt2=t=>{
+          const snd=MODEL.tracks.piano.filter(p=>!p.atmos&&p.t<=t+0.05&&p.t+(p.dur||0.5)>t-0.05).map(p=>p.midi);
+          const u=[...new Set(snd)].sort((a,b)=>a-b);const picked=[];
+          for(let k2=u.length-1;k2>=0&&picked.length<3;k2--){const x=u[k2];if(picked.every(q=>Math.abs(q-x)>=3))picked.push(x);}
+          picked.sort((a,b)=>a-b);
+          if(picked.length<3)return null;
+          let sh=0;while(picked[0]+sh<55)sh+=12;while(picked[picked.length-1]+sh>79)sh-=12;
+          return picked.map(x=>x+sh);
+        };
+        // 브라스 스탭·혼·드럼 풀 그루브를 피날레 전체로 연장(꽉 채움)
+        for(let t=lastEnd;t<target-1e-6;t+=2){
+          const c=chordAt2(t);if(!c)continue;const prog=(t-lastEnd)/span;
+          if(MODEL.tracks.guitar)c.forEach(m=>MODEL.tracks.guitar.push({t,midi:m,vel:100,dur:0.9,cine:1}));
+          if(MODEL.tracks.counter){let top=c[c.length-1]+12;while(top>84)top-=12;
+            MODEL.tracks.counter.push({t,midi:top,vel:100,dur:0.95,cine:1});}
+          // 멜로디 상승선: 코드 최상성음을 점점 높은 음역으로(76→91) — 아웃트로 직전 최고점 도달
+          if(MODEL.tracks.melody&&t<target-4){
+            const hiT=76+prog*15;let hi=c[c.length-1];
+            while(hi<hiT-6)hi+=12;while(hi>hiT+6)hi-=12;
+            MODEL.tracks.melody.push({t,midi:hi,vel:Math.round(86+prog*22),dur:1.9,cine:1});
+          }
+        }
+        // 멜로디 최고점: 마지막 마디에서 최고음을 길게 지속 → 몰이 위에서 소어링 → 릴리즈와 함께 해소
+        if(MODEL.tracks.melody){
+          const cF=chordAt2(target-4)||chordAt2(target-4.5);
+          if(cF){let peak=cF[cF.length-1];while(peak<88)peak+=12;while(peak>93)peak-=12;
+            MODEL.tracks.melody.push({t:target-4,midi:peak,vel:114,dur:3.8,cine:1});}
+        }
+        if(MODEL.tracks.drums){
+          const ex=MODEL.tracks.drums.filter(n=>n.t>=lastEnd&&n.t<target);
+          const hasK=t=>ex.some(n=>n.type==='kick'&&Math.abs(n.t-t)<0.12);
+          const hasS=t=>ex.some(n=>n.type==='snare'&&Math.abs(n.t-t)<0.12);
+          for(let t=lastEnd;t<target-1e-6;t+=1){const b=Math.round(t-lastEnd)%4;
+            if((b===0||b===2)&&!hasK(t))MODEL.tracks.drums.push({t,type:'kick',vel:100});
+            if((b===1||b===3)&&!hasS(t))MODEL.tracks.drums.push({t,type:'snare',vel:92});
+            if(orchStyle){MODEL.tracks.drums.push({t,type:'tom1',vel:76});MODEL.tracks.drums.push({t:t+0.5,type:'tom1',vel:70});
+              const pg=(t-lastEnd)/span;
+              if(pg>0.4){MODEL.tracks.drums.push({t:t+0.25,type:'tom2',vel:Math.round(58+pg*24)});MODEL.tracks.drums.push({t:t+0.75,type:'tom2',vel:Math.round(54+pg*24)});}}}   // 후반 16분 레이어(클라이맥스 촘촘)
+          for(let t=lastEnd;t<target-1e-6;t+=4)MODEL.tracks.drums.push({t,type:'crash',vel:96});
+          // 아웃트로 직전 1마디: 마지막 몰이(스네어+팀파니 16분 크레셴도) → 릴리즈
+          const f0=target-4;
+          if(f0>lastEnd){
+            for(let t=0;t<2;t+=0.5)MODEL.tracks.drums.push({t:f0+t,type:'snare',vel:Math.round(78+t*8)});
+            for(let t=2;t<4;t+=0.25){MODEL.tracks.drums.push({t:f0+t,type:'snare',vel:Math.round(88+(t-2)*14)});
+              if(orchStyle)MODEL.tracks.drums.push({t:f0+t,type:'tom1',vel:Math.round(84+(t-2)*14)});}
+            MODEL.tracks.drums.push({t:target-0.25,type:'crash',vel:112});
+          }
+          // 아웃트로 첫박: 릴리즈 히트(터지고 → 탁 풀리며 페이드로)
+          if(_outroStart!=null){MODEL.tracks.drums.push({t:_outroStart,type:'crash',vel:106});
+            MODEL.tracks.drums.push({t:_outroStart,type:'kick',vel:104});}
+        }
+      }
+    }
   }
   // ── 2nd 피아노 불협 회피(후처리): 동시에 울리는 멜로디·메인피아노와 반음(단2도·단9도) 충돌 시
   //    같은 셀의 다른 코드톤으로 교체, 불가하면 그 음만 쉼 → '툭툭 부딪힘' 원천 제거 ──
@@ -1517,6 +1586,20 @@ function arrange(){
       return false;
     });
   });
+  // ── 최종 베이스 토닉 스냅: 마지막 그리드 코드가 토닉이면(=토닉 클로즈 의도) 마지막 베이스 음을 근음으로 확정
+  //    (베이스 패턴이 3음·어프로치로 끝나 '덜 끝난' 느낌이 나는 것 방지 — 시네마틱 스타일 등)
+  {
+    const secsL=state.sections;if(secsL.length){
+      const lg=secsL[secsL.length-1].grid;
+      const lastSym=lg.length?lg[lg.length-1][lg[lg.length-1].length-1]:null;
+      const lc=lastSym?chordFromSym(lastSym):null;const km2=keyPc();
+      if(lc&&lc.pc===km2&&MODEL.tracks.bass&&MODEL.tracks.bass.length){
+        const lb=MODEL.tracks.bass.slice().sort((a,b)=>b.t-a.t)[0];
+        if(((lb.midi%12)+12)%12!==km2){let m=lb.midi;const d=(km2-((m%12)+12)%12+12)%12;
+          m=m+(d<=6?d:d-12);lb.midi=m;}                                    // 가장 가까운 토닉 음고로
+      }
+    }
+  }
   
   return MODEL;
 }
@@ -1916,7 +1999,7 @@ function atmosRegion(ch,s,d,tracks,isIntro,frac){
   } else {
     ps.forEach((p,i)=>tracks.piano.push({t:s+i*0.02,dur:d*0.99,midi:p,vel:Math.max(16,baseVel-(i%2?4:0)),bright,atmos:1})); // 부드럽게 굴려 들어오는 지속 패드
   }
-  let lo=ps[0]-12;while(lo<31)lo+=12;while(lo>43)lo-=12;
+  let lo=(ch.pc!=null?ch.pc:ps[0]%12)+24;while(lo<31)lo+=12;while(lo>43)lo-=12;   // 코드 '근음'(보이싱 최저음 아님 — rootless 보이싱에서도 정확한 베이스)
   tracks.bass.push({t:s,dur:d*0.99,midi:lo,vel:Math.max(18,baseVel-6),bright,atmos:1});                 // 소프트 저음 근음
 }
 /* 대선율(카운터라인): 멜로디 쉼표를 코드톤으로 메우는 콜앤리스폰스 라인. 저역(보컬 밑) · 코드톤만 써 항상 어울림 */
@@ -3208,7 +3291,9 @@ function logicGuide(){
     line('    폭발 첫 마디 심벌 여운(0.5·1·2박): 자연 감쇠 유지');
     line('· 폭발 후 유지(구간 끝까지): 드럼 풀 그루브 + 브라스 스탭(2박마다) + 혼 지속 + 멜로디 상성부');
     line('    브라스 스탭 유지(기타): 폭발과 동일 EQ, 살짝 게이트로 리듬감 / 혼(카운터): Hall Send로 웅장 베드');
-    line('    → 폭발 에너지가 코러스까지 안 꺼지고 이어짐(김 빠짐 방지)');
+    line('· 피날레(마지막 코러스~아웃트로 직전): 곡 최대 밀도 — 브라스·혼·드럼(후반 16분 팀파니) 연장');
+    line('    멜로디 상승선: 점점 올라가 아웃트로 직전 최고음 3.8박 소어링 → CC11로 크레셴도 라이드, 4kHz +2dB');
+    line('    아웃트로 직전 1마디 몰이(스네어+팀파니 16분) → 릴리즈 크래시 → 아웃트로 페이드');
     line('');
   }
   if(state.enabled.piano){
