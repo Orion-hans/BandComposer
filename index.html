@@ -513,7 +513,7 @@ const STYLES=[
    {name:'비상 · i–VI–iv–V',r:['i','VI','iv','V']},
    {name:'상승 · VI–VII–i–v',r:['VI','VII','i','v']},
    {name:'장대 · iv–V–VI–III',r:['iv','V','VI','III']}]},
- {id:'saguk',name:'Aeolian / 사극 (Oriental)',tempo:[54,82],dur:[240,360],groove:'saguk',hint:'고즈넉한 국악 사극 OST — 애절하고 동양적인 정취.',pool:[
+ {id:'saguk',name:'Aeolian / 사극 (Oriental)',tempo:[54,82],dur:[240,360],groove:'saguk',hint:'고즈넉한 사극 OST — 애절하고 동양적인 정취(에이올리안·드론).',pool:[
    {name:'에이올리안 · i–bVII–bVI–bVII',r:['i','bVII','bVI','bVII']},
    {name:'모달 종지 · i–bVII–bVI–v',r:['i','bVII','bVI','v']},
    {name:'하행 · i–v–bVI–iv',r:['i','v','bVI','iv']},
@@ -1557,9 +1557,14 @@ function arrange(){
   // ── 2nd 피아노 불협 회피(후처리): 동시에 울리는 멜로디·메인피아노와 반음(단2도·단9도) 충돌 시
   //    같은 셀의 다른 코드톤으로 교체, 불가하면 그 음만 쉼 → '툭툭 부딪힘' 원천 제거 ──
   if(MODEL.tracks.piano2&&MODEL.tracks.piano2.length){
-    const others=[...MODEL.tracks.piano.filter(p=>!p.atmos),...MODEL.tracks.melody];
+    // 회피 대상 확장: 지속되는 모든 성부(드론·베이스 지속현·기타·대선율·리드 포함) — 사극류 드론/저현과의 반음 부딪힘 방지
+    const others=[
+      ...MODEL.tracks.piano.filter(p=>!p.atmos),...MODEL.tracks.melody,
+      ...(MODEL.tracks.drone||[]),...(MODEL.tracks.bass||[]),
+      ...(MODEL.tracks.guitar||[]),...(MODEL.tracks.counter||[]),...(MODEL.tracks.lead||[])];
     const sounding=(t0,t1)=>others.filter(p=>p.t<t1-0.05&&p.t+(p.dur||0.5)>t0+0.05);
-    const clash=(m,list)=>list.some(p=>{const iv=Math.abs(m-p.midi);return iv===1||iv===11||iv===13;});
+    // pc 기준 반음 충돌(옥타브 떨어져도 성긴 텍스처에선 들림 — 사극 드론 vs 고역 오스티나토 등)
+    const clash=(m,list)=>list.some(p=>{const iv=Math.abs(m-p.midi)%12;return iv===1||iv===11;});
     const all=MODEL.tracks.piano2;
     MODEL.tracks.piano2=all.filter(n=>{
       const s0=sounding(n.t,n.t+n.dur);
@@ -1586,6 +1591,18 @@ function arrange(){
       return false;
     });
   });
+  // ── 마지막 코러스 리프트: 마지막 비-아웃트로 구간이 코러스면 전 악기 벨로 +6%(최종 상승 아치 — 전 장르 공통)
+  {
+    const secs2=state.sections;let li=-1;
+    for(let i2=secs2.length-1;i2>=0;i2--){if(secs2[i2].type!=='Outro'){li=i2;break;}}
+    if(li>=0&&secs2[li].type==='Chorus'){
+      // 구간 시작/끝 박 계산
+      let t0=0;for(let i2=0;i2<li;i2++){const m2=METERS[secMeter(secs2[i2])]||METERS['4/4'];t0+=secs2[i2].grid.length*m2.q;}
+      const m3=METERS[secMeter(secs2[li])]||METERS['4/4'];const t1=t0+secs2[li].grid.length*m3.q;
+      Object.keys(MODEL.tracks).forEach(tr=>{if(!Array.isArray(MODEL.tracks[tr]))return;
+        MODEL.tracks[tr].forEach(n=>{if(n.vel&&n.t>=t0-1e-6&&n.t<t1-1e-6)n.vel=Math.min(127,Math.round(n.vel*1.06));});});
+    }
+  }
   // ── 최종 베이스 토닉 스냅: 마지막 그리드 코드가 토닉이면(=토닉 클로즈 의도) 마지막 베이스 음을 근음으로 확정
   //    (베이스 패턴이 3음·어프로치로 끝나 '덜 끝난' 느낌이 나는 것 방지 — 시네마틱 스타일 등)
   {
@@ -1615,7 +1632,7 @@ function drumBar(gid,meter,e,crash,buildLast,fill,b0,out,climaxApproach){
   if(G.bare){ // 사극/오리엔탈: 깊은 타악(둥-둥)만, 하이햇 없음
     if(e<=1){out.push({t:b0,type:'kick',vel:78});return;}
     G.kick.forEach(p=>{if(p<sixteenths)out.push({t:b0+p*s16,type:'kick',vel:e>=4?96:82});});
-    if(e>=3)out.push({t:b0+Math.round(sixteenths/2)*s16,type:'tom1',vel:52}); // 약한 중간 타 = 장구 채편(높은 북), 드럼킷 스네어 아님
+    if(e>=3)out.push({t:b0+Math.round(sixteenths/2)*s16,type:'tom1',vel:52}); // 약한 중간 타 = 높은 프레임드럼/톰, 드럼킷 스네어 아님
     if(e>=4&&!buildLast)out.push({t:b0+(sixteenths-2)*s16,type:'tom2',vel:60});
     return;}
   if(G.orch){ /* 오케 타악: 그란카사 강박 + 탐(타이코/팀파니) 펄스 + 스네어(마칭/히트) + 심벌·탐탐 */
@@ -1924,7 +1941,7 @@ function pianoRegion(ch,s,d,e,out,bb,bs,bts,opt){const ps=ch.piano,top=ps[ps.len
       if(e<=2){bts.forEach(o=>{note(o,order[i%order.length],i%2?48:58,1.1);i++;});}
       else{for(let o=0;o<BB-1e-6;o+=0.5){note(o,order[i%order.length],i%2?48:58,0.65);i++;}}
       return;}
-    case 'oriental':{                                    // 사극: 개방 5도/펜타토닉 분산(가야금·고토 느낌)
+    case 'oriental':{                                    // 사극: 개방 5도/펜타토닉 분산(성긴 발현 느낌)
       const rt=ch.pc;let voi=[60+rt,67+rt,72+rt,74+rt,79+rt].map(m=>{while(m>83)m-=12;while(m<55)m+=12;return m;});
       voi=[...new Set(voi)].sort((a,b)=>a-b);const order=voi.concat(voi.slice(0,-1).reverse());let i=0;
       for(let o=0;o<BB-1e-6;o+=0.5){note(o,order[i%order.length],i%2?44:56,1.2);i++;}
@@ -2660,13 +2677,13 @@ function buildInstChips(containerId,withRole){const box=$(containerId);if(!box)r
     if(withRole){el.dataset.role='1';el.innerHTML='<b>'+BASE[k]+'</b><span class="crole"></span>';}
     else el.textContent=BASE[k];                                   // 즉시 기본 라벨 — 스타일 라벨은 로드 완료 후 refreshChipLabels()가 입힘(TDZ 회피)
     el.onclick=()=>toggleInst(k);box.appendChild(el);});}
-/* 악기 칩 라벨 — 스타일 따라 실제 편성 이름으로(오케=현·브라스·목관, 사극=국악기) */
+/* 악기 칩 라벨 — 스타일 따라 실제 편성 이름으로(오케=현·브라스·목관, 사극=모달 앙상블) */
 function chipShort(k){
   const st=state.style;
   if(st==='animeost')return {piano:'피아노',bass:'일렉베이스',guitar:'일렉기타',drums:'오케타악+드럼',melody:'바이올린',counter:'혼(대선율)',lead:'목관(테마)',drone:'저역 페달',genre:'하프'}[k];
   if(st==='disney')return {piano:'피아노',bass:'저현',guitar:'현+브라스',drums:'오케타악+은은한드럼',melody:'바이올린',counter:'혼(대선율)',lead:'목관(테마)',drone:'저역 페달',genre:'하프'}[k];
   if(['epic','animeost'].includes(st))return {piano:'현 베드',bass:'저현(콘트라)',guitar:'브라스',drums:'오케 타악',melody:'바이올린',counter:'혼(대선율)',lead:'목관(테마)',drone:'저역 페달',genre:'하프'}[k];
-  if(st==='saguk')return {piano:'가야금',bass:'아쟁',guitar:'거문고',drums:'국악 타악',melody:'대금/해금',counter:'해금/피리',lead:'대금(테마)',drone:'생황 드론',genre:'전용'}[k];
+  if(st==='saguk')return {piano:'성긴 모달 펠트',bass:'어두운 저현 레가토',guitar:'성긴 나일론 발현',drums:'낮은 톰·프레임드럼',melody:'노래하는 다크 첼로',counter:'따뜻한 비올라',lead:'공기감 알토 플루트',drone:'어두운 현 패드',genre:'전용'}[k];
   const G=GENRE_TRK[st];
   if(k==='genre')return G?({banjo:'🎯 밴조',choir:'🎯 합창',harp:'🎯 하프',arps:'🎯 아르프',stabs:'🎯 스탭'})[G.kind]:'🎯 전용';
   if(k==='piano'&&st==='gospel')return '오르간';
@@ -2712,7 +2729,7 @@ function instMeta(part){const st=state.style,g=(PERF[st]||{}).gtr;
     piano: st==='epic'?{n:'Strings (Sustain/Marcato Bed)',p:48}
           :st==='animeost'?{n:'Grand Piano (Cinematic)',p:0}
           :st==='disney'?{n:'Grand Piano (Musical)',p:0}
-          :st==='saguk'?{n:'Gayageum (가야금 발현)',p:107}                      // 국악: 그랜드피아노 아님
+          :st==='saguk'?{n:'Grand Piano (Sparse Modal, felt)',p:0}              // 사극풍: 성긴 모달 피아노(펠트)
           :st==='gospel'?{n:'Hammond Organ (Gospel)',p:16}                      // 가스펠: 오르간이 핵심
           :st==='komuro'?{n:'Poly Synth (90s Dance)',p:90}                      // 코무로계: 신스
           :['neosoul','marusa'].includes(st)?{n:'Electric Piano (Rhodes)',p:4}
@@ -2721,24 +2738,24 @@ function instMeta(part){const st=state.style,g=(PERF[st]||{}).gtr;
     bass:  st==='epic'?{n:'Low Strings (Celli+Basses)',p:42}
           :st==='animeost'?{n:'Electric Bass (Band)',p:33}
           :st==='disney'?{n:'Low Strings (Celli+Basses)',p:42}
-          :st==='saguk'?{n:'Ajaeng (아쟁 저음 현)',p:110}                        // 국악 저역: 일렉베이스 아님
+          :st==='saguk'?{n:'Cello / Low Strings (Legato, dark)',p:42}            // 사극풍 저역: 첼로·저현 레가토
           :st==='gospel'?{n:'Upright Bass',p:32}
           :st==='funk'?{n:'Slap Bass',p:36}
           :['billie','komuro','kpop'].includes(st)?{n:'Synth Bass',p:38}:{n:'Electric Bass (finger)',p:33},
     guitar:st==='epic'?{n:'Brass Section (Hits/Marcato)',p:61}
           :st==='animeost'?{n:'Overdriven Guitar (Band)',p:29}
           :st==='disney'?{n:'Brass + Strings (Orchestral Swell)',p:48}
-          :st==='saguk'?{n:'Geomungo (거문고 · 없으면 트랙 OFF)',p:107}          // 국악 현: 일렉기타 아님
+          :st==='saguk'?{n:'Nylon Guitar (Fingerstyle, sparse)',p:24}            // 사극풍 발현감: 나일론 기타 성기게
           :g==='none'?{n:'(guitar 미사용 — 트랙 OFF 권장)',p:27}                 // billie 등: gtr none이면 미사용 명시
           :st==='country'?{n:'Acoustic Guitar + Banjo layer',p:105}              // 컨트리: 밴조 정체성
           :g==='power'?{n:'Overdriven Guitar',p:29}
           :g==='arp'?(st==='celtic'?{n:'Acoustic Guitar (nylon)',p:24}:{n:'Acoustic Guitar (steel)',p:25})
           :{n:'Clean Electric Guitar',p:27},
     drums: ['epic','animeost','disney'].includes(st)?{n:'Orch Perc (Timpani/GranCassa/Tam-tam)',p:null}
-          :st==='saguk'?{n:'Korean Perc (Janggu/Buk/Kkwaenggwari 장구·북)',p:null}  // 국악 타악: 드럼킷 아님
+          :st==='saguk'?{n:'Low Toms & Frame Drum (Cinematic Perc)',p:null}       // 사극풍 타악: 낮은 톰·프레임드럼
           :{n:'Drum Kit',p:null},
     melody:['epic','animeost','disney'].includes(st)?{n:'Melody - Violins (Soaring)',p:48}
-          :st==='saguk'?{n:'Melody - Daegeum/Haegeum rec',p:75}
+          :st==='saguk'?{n:'Melody - Cello (Expressive, dark)',p:42}
           :st==='celtic'?{n:'Melody - Tin Whistle/Fiddle',p:78}
           :st==='komuro'?{n:'Melody - Synth Lead (90s)',p:81}                   // 코무로: 기타 아닌 신스 리드
           :ROCK.includes(st)?{n:'Melody - Vocal/Lead Guitar',p:30}
@@ -2748,18 +2765,18 @@ function instMeta(part){const st=state.style,g=(PERF[st]||{}).gtr;
           :['country','countrypop'].includes(st)?{n:'Melody - Vocal/Fiddle rec',p:110}
           :{n:'Melody - Vocal line (Strings)',p:40},
     lead:  ['epic','animeost','disney'].includes(st)?{n:'Lead Theme - Woodwind (Flute/Oboe)',p:73}
-          :st==='saguk'?{n:'Lead Theme - Daegeum rec',p:75}
+          :st==='saguk'?{n:'Lead Theme - Alto Flute (Airy)',p:73}
           :st==='celtic'?{n:'Lead Theme - Whistle',p:78}
           :{n:'Lead Theme (Flute)',p:73},
     drone: ['epic','animeost','disney'].includes(st)?{n:'Low Pedal (Basses Sustain)',p:48}
-          :st==='saguk'?{n:'Drone - Ajaeng/Saenghwang (생황)',p:109}
+          :st==='saguk'?{n:'Drone - Dark String Pad (Sustain)',p:49}
           :st==='celtic'?{n:'Drone - Uilleann Pipes/Pad',p:109}
           :['gospel','worship'].includes(st)?{n:'Drone - Organ Pad',p:16}         // 가스펠·워십: 오르간 지속음
           :['country','countrypop'].includes(st)?{n:'Drone - Pedal Steel/Pad',p:26}  // 컨트리: 페달스틸
           :['neosoul','marusa'].includes(st)?{n:'Drone - Warm Rhodes Pad',p:89}
           :{n:'Drone Pad (Alchemy rec)',p:89},
     counter:['epic','animeost','disney'].includes(st)?{n:'Counter - French Horns',p:60}
-          :st==='saguk'?{n:'Counter - Haegeum/Piri rec',p:110}
+          :st==='saguk'?{n:'Counter - Viola (Warm)',p:41}
           :st==='celtic'?{n:'Counter - Whistle/Fiddle',p:110}
           :ROCK.includes(st)?{n:'Counter - Lead Gt Riff',p:29}
           :['motown','gospel','funk'].includes(st)?{n:'Counter - Horn Section',p:61}
@@ -3507,7 +3524,7 @@ const GUIDE={
   celtic:{mark:'mp',accent:'med',combo:[['드론','med core'],['보이싱 클린'],['대선율']],feel:'믹솔리디안 bVII·도리안·오픈(sus) 코드. <b>드론</b>이 자연스럽게 맞습니다 — 백파이프 지속저음. 대선율이 휘슬 같은 답 선율을.',tip:'드론은 켈틱에선 명상용이 아니라 \u2018악기\u2019. 로직에서 피들·휘슬.'},
   country:{mark:'mf',combo:[['보이싱 클린'],['대선율'],['사람처럼']],feel:'또렷한 I–IV–V 메이저. 담백함이 미덕이라 텐션을 빼고 클린 보이싱으로. 대선율이 슬라이드 기타/피들 답을.',tip:'차용화음은 자제 — 담백한 3코드가 아메리카나의 정직함.'},
   countrypop:{mark:'mf',combo:[['보이싱 자동'],['편곡 다이내믹'],['대선율']],feel:'어쿠스틱 잰글 위 I–V–vi–IV, add9 오픈코드. 편곡 다이내믹으로 벌스는 어쿠스틱만, 코러스에서 밴드가 붙는 아치.',tip:'add9 오픈코드는 카포 낀 어쿠스틱으로.'},
-  saguk:{mark:'pp→p',accent:'med',combo:[['드론','med core'],['호흡','med'],['분위기'],['펜타토닉']],feel:'에이올리안·펜타토닉·드론의 동양적 사극 OST. 드론의 지속저음 위에 펜타토닉 선율. 국악 지속저음 감각과 바로 통하는 지점.',tip:'리드(테마)를 로직에서 대금·해금·피리로 바꾸면 사극 색이 완성.'},
+  saguk:{mark:'pp→p',accent:'med',combo:[['드론','med core'],['호흡','med'],['분위기'],['펜타토닉']],feel:'에이올리안·펜타토닉·드론의 동양적 사극 OST. 드론의 지속저음 위에 펜타토닉 선율이 흐르는 구조.',tip:'리드(테마) 가상악기를 로직에서 원하는 민속 관악 계열로 바꾸면 사극 색이 완성.'},
 };
 const GUIDE_LEGEND=[
   ['🎲 작곡/랜덤','스타일 구조·진행 생성. 구조 랜덤은 모던 폼(콜드오픈·포스트코러스·드롭)까지.'],
@@ -3618,9 +3635,9 @@ const RECIPES_SPEC=[
   // 포크·컨트리
   {ko:'🍀 켈틱 드론',feel:'지속저음 드론 + 클린 오픈코드 + 대선율(휘슬). 믹솔리디안·도리안 켈틱.',combo:[['드론','med core'],['보이싱 클린'],['대선율']],apply:{drone:1,voicing:'clean',counter:1},fit:['celtic','folk']},
   {ko:'🤠 어쿠스틱 스토리',feel:'클린 보이싱 + 사람처럼 + 대선율(슬라이드). 담백한 컨트리 서사.',combo:[['보이싱 클린'],['사람처럼','core'],['대선율']],apply:{voicing:'clean',humanize:1,counter:1},fit:['country','countrypop','folk']},
-  // 동양·국악·명상
+  // 동양·모달·명상
   {ko:'🎐 정악풍 지속',feel:'느린 호흡(명상 4:6)에 으뜸음 드론, 펜타토닉 위 절제된 여백. 정악의 유장함.',combo:[['드론','med core'],['호흡 4:6','med'],['분위기'],['편곡 다이내믹']],apply:{drone:1,breath:'med',voicing:'clean',introTheme:0,arrDyn:1,arc:'calm'},fit:['saguk','oriental']},
-  {ko:'🏯 사극 OST',feel:'지속저음 드론 + 대선율(대금·해금 라인) + 편곡 대비. 드라마틱한 사극 스코어.',combo:[['드론','med core'],['대선율'],['편곡 다이내믹']],apply:{drone:1,counter:1,arrDyn:1,voicing:'clean',arc:'rise'},fit:['saguk','oriental']},
+  {ko:'🏯 사극 OST',feel:'지속저음 드론 + 대선율(첼로·비올라 라인) + 편곡 대비. 드라마틱한 사극 스코어.',combo:[['드론','med core'],['대선율'],['편곡 다이내믹']],apply:{drone:1,counter:1,arrDyn:1,voicing:'clean',arc:'rise'},fit:['saguk','oriental']},
   {ko:'🧘 깊은 명상 (긴 날숨)',feel:'긴 날숨(4:8) 호흡에 드론+5도, 선율 없는 분위기. 부교감을 여는 깊은 이완.',combo:[['드론','med core'],['긴 날숨 호흡','med'],['분위기']],apply:{drone:1,breath:'longout',introTheme:0,voicing:'clean',arc:'calm'},fit:['saguk','oriental']},
   {ko:'🌫 시나위풍 여백',feel:'사람처럼 흔들리는 타이밍 + 큰 여백 + 드론. 즉흥적 산조·시나위의 숨.',combo:[['드론','med core'],['사람처럼'],['편곡 다이내믹']],apply:{drone:1,humanize:1,arrDyn:1,voicing:'clean'},fit:['saguk','oriental']},
   {ko:'🌊 코히런트 명상 (5:5)',feel:'코히런트 호흡(5:5)에 지속저음, 균형 잡힌 호흡 명상 트랙.',combo:[['드론','med core'],['코히런트 호흡','med'],['분위기']],apply:{drone:1,breath:'coherent',introTheme:0,voicing:'clean',arc:'calm'},fit:['saguk','oriental']},
