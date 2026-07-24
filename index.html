@@ -1828,13 +1828,57 @@ function arrange(){
       }
       if(add.length)MODEL.tracks.bass=B.concat(add).sort((a,b)=>a.t-b.t);
     }
+    // 고스트 노트: 뮤트한 저음을 아주 작게(들리진 않고 '느껴지는' 그루브). 펑크·모타운·네오소울·시티팝의 핵심
+    const GHOST={funk:2,motown:1.5,neosoul:1.5,citypop:1,rnb:1.5,kpop:0.5,poppunk:0.5};
+    const gpb=GHOST[ST]||0;
+    if(gpb&&MODEL.tracks.bass){
+      const gadd=[];
+      MODEL.sections.forEach((sc,si2)=>{
+        const bq=(METERS[secMeter(state.sections[si2])]||METERS['4/4']).q;
+        const ty=(state.sections[si2]||{}).type;
+        if(ty==='Intro'||ty==='Outro')return;                    // 넓은 구간엔 고스트 없음(아치 유지)
+        for(let b0=sc.startQ;b0<sc.endQ-1e-6;b0+=bq){
+          if(inProtB(b0))continue;
+          const inBar=MODEL.tracks.bass.filter(n=>!n.atmos&&n.t>=b0-1e-6&&n.t<b0+bq-1e-6).sort((a,b)=>a.t-b.t);
+          if(!inBar.length)continue;
+          const root=inBar[0].midi;
+          let placed=0;
+          for(let sl=0.75;sl<bq-0.1&&placed<gpb;sl+=0.5){        // 16분 뒷자리(엇박)에서 빈 곳만
+            const t=b0+sl;
+            if(MODEL.tracks.bass.some(n=>Math.abs(n.t-t)<0.18))continue;
+            if(br()>0.55)continue;
+            gadd.push({t,midi:root,vel:24+Math.floor(br()*10),dur:0.11,ghost:1});
+            placed++;
+          }
+        }
+      });
+      if(gadd.length)MODEL.tracks.bass=MODEL.tracks.bass.concat(gadd).sort((a,b)=>a.t-b.t);
+    }
+    // 핑거링/피킹 벨로시티 컨투어: 손가락 교대(약간의 강약 물결) vs 피크(고르고 단단) vs 슬랩(옥타브 팝 액센트)
+    const TOUCH={funk:'slap',motown:'finger',neosoul:'finger',citypop:'finger',rnb:'finger',gospel:'finger',
+      jazz:'finger',ballad:'finger',jballad:'finger',worship:'finger',countrypop:'pick',country:'pick',
+      poppunk:'pick',rock:'pick',animerock:'pick',komuro:'pick',ukpop:'pick',kpop:'synth',billie:'synth'};
+    const touch=TOUCH[ST];
+    if(touch&&MODEL.tracks.bass){
+      const bs3=MODEL.tracks.bass.filter(n=>!n.atmos&&!inProtB(n.t)&&!n.ghost).sort((a,b)=>a.t-b.t);
+      bs3.forEach((n,i)=>{
+        if(!n.vel)return;
+        if(touch==='finger')n.vel=Math.max(24,Math.min(127,n.vel+((i%2)?-4:3)));        // 검지·중지 교대의 미세한 물결
+        else if(touch==='pick')n.vel=Math.max(24,Math.min(127,Math.round(n.vel*1.04)+((i%2)?-1:1)));   // 고르고 단단
+        else if(touch==='slap'){const oct=(i>0&&n.midi-bs3[0].midi>=11);
+          n.vel=Math.max(24,Math.min(127,oct?n.vel+14:n.vel-3));}                        // 옥타브 팝만 강하게
+      });
+    }
     // 아티큘레이션: 다음 음까지의 간격 대비 비율로 음 길이 재설정(장르 느낌의 핵심)
+    //   레가토 장르는 살짝 겹치게(오버랩) → 샘플 라이브러리의 레가토/글라이드가 물려 "둥~" 이어짐
     if(art&&MODEL.tracks.bass){
-      const bs2=MODEL.tracks.bass.filter(n=>!n.atmos&&!inProtB(n.t)).sort((a,b)=>a.t-b.t);
+      const bs2=MODEL.tracks.bass.filter(n=>!n.atmos&&!inProtB(n.t)&&!n.ghost).sort((a,b)=>a.t-b.t);
+      const legato=art>=0.9;
       for(let i=0;i<bs2.length;i++){
         const nx=bs2[i+1];if(!nx)continue;
         const gap=nx.t-bs2[i].t;if(gap<=0||gap>4)continue;
-        bs2[i].dur=Math.max(0.1,Math.min(bs2[i].dur||gap,gap*art));
+        const target=(legato&&nx.midi!==bs2[i].midi)?gap*1.04:gap*art;                    // 음정이 다를 때만 겹침(같은 음 겹침은 노트오프 충돌)
+        bs2[i].dur=Math.max(0.1,Math.min(bs2[i].dur||gap,target));
       }
     }
   }
@@ -2011,7 +2055,99 @@ function arrange(){
       }
     }
   }
-  
+
+  // ── 오케 타악 정리 패스: ① 벨로시티 밸런스 ② 팀파니를 '음정 트랙'으로 분리(코드 맞춤)
+  //    ③ 롤은 낱음 대신 롱노트 1개 + CC11 크레셴도로 기록(로직의 롤/서스테인 패치가 그대로 연주)
+  if(['epic','animeost','disney','animerock'].includes(state.style)&&MODEL.tracks.drums){
+    const secsT=MODEL.sections||[];
+    const barQt=si=>{const sc=state.sections[si];return (METERS[secMeter(sc)]||METERS['4/4']).q;};
+    const idxT=t=>{for(let i=0;i<secsT.length;i++)if(t>=secsT[i].startQ-1e-6&&t<secsT[i].endQ-1e-6)return i;return secsT.length-1;};
+    const eT=t=>{const i=idxT(t),ty=(state.sections[i]||{}).type;
+      const base=(ty==='Chorus')?4:(ty==='Bridge'||ty==='PreChorus')?3:(ty==='Verse')?2:1;
+      return base+((i>secsT.length/2)?1:0);};
+    // (1) 벨로시티 밸런스: 심벌은 확실히 낮추고, 그란카사·스네어도 과열 방지
+    const VS={crash:0.74,openhat:0.74,kick:0.90,snare:0.88,tom1:0.86,tom2:0.86,tom3:0.86,hat:0.95};
+    MODEL.tracks.drums.forEach(n=>{const k=VS[n.type];if(!k||!n.vel)return;
+      const cap={crash:104,kick:112,snare:106}[n.type]||108;
+      n.vel=Math.max(20,Math.min(cap,Math.round(n.vel*k)));});
+    // (2) 팀파니: 코드 근음/5도로 음정을 맞춘 별도 트랙 생성(원 드럼 이벤트는 앱 재생용으로 유지)
+    const pnT=(MODEL.tracks.piano||[]).filter(n=>!n.atmos&&n.midi!=null).sort((a,b)=>a.t-b.t);
+    const bsT=(MODEL.tracks.bass||[]).filter(n=>!n.atmos&&n.midi!=null).sort((a,b)=>a.t-b.t);
+    const rootAt=t=>{let r=null;for(const n of bsT){if(n.t<=t+0.05)r=n.midi;else break;}
+      if(r==null){for(const n of pnT){if(n.t<=t+0.05)r=n.midi;else break;}}
+      if(r==null)return 43;let m=((r%12)+12)%12+36;while(m<38)m+=12;while(m>53)m-=12;return m;};   // 팀파니 실용 음역(D2~F3)
+    const toms=MODEL.tracks.drums.filter(n=>/^tom/.test(n.type)).sort((a,b)=>a.t-b.t);
+    // 롤 묶기: 간격 0.3박 이하로 4개 이상 이어지면 하나의 롤로 본다
+    const groups=[];let cur=null;
+    toms.forEach(n=>{
+      const tooLong=cur&&(n.t-cur.items[0].t)>=3.5;               // 롤은 최대 1마디 — 그보다 길면 끊어서 새 롤로
+      if(cur&&!tooLong&&n.t-cur.last<=0.31){cur.items.push(n);cur.last=n.t;}
+      else{cur={items:[n],last:n.t};groups.push(cur);}
+    });
+    const timp=[],timpCC=[];
+    const perBar=new Map();
+    groups.forEach(g=>{
+      const t0=g.items[0].t,tEnd=g.items[g.items.length-1].t+(0.25);
+      const e=eT(t0),bi=idxT(t0)+':'+Math.floor((t0-secsT[idxT(t0)].startQ)/barQt(idxT(t0)));
+      const isRoll=g.items.length>=4;
+      // 밀도 제한: 마디당 단타는 에너지에 따라(후반부일수록 조금 더), 롤은 항상 허용
+      const cap=(e<=1)?0:(e===2)?1:(e===3)?2:(e===4)?3:4;
+      if(!isRoll){
+        const c=perBar.get(bi)||0;if(c>=cap)return;perBar.set(bi,c+1);
+      }
+      const root=rootAt(t0);
+      if(isRoll){
+        // 롤: 롱노트 1개 + CC11 크레셴도(시작 여림 → 끝 강함)
+        const v0=Math.min(80,Math.max(30,g.items[0].vel||45));
+        const v1=Math.min(112,Math.max(v0+16,g.items[g.items.length-1].vel||96));
+        timp.push({t:t0,midi:root,vel:Math.round(v0*0.9),dur:Math.max(0.5,tEnd-t0),roll:1});
+        const steps=Math.max(4,Math.min(16,Math.round((tEnd-t0)*3)));
+        for(let i=0;i<=steps;i++){const f=i/steps;
+          timpCC.push({t:t0+(tEnd-t0)*f,ctrl:11,val:Math.round(v0+(v1-v0)*Math.pow(f,1.4))});}
+        timpCC.push({t:tEnd+0.02,ctrl:11,val:Math.round(v0*0.8)});
+      } else {
+        g.items.forEach((n,k)=>{
+          const isFifth=(n.type==='tom2');const isLow=(n.type==='tom3');
+          let m=root+(isFifth?7:isLow?-5:0);while(m>53)m-=12;while(m<38)m+=12;
+          timp.push({t:n.t,midi:m,vel:Math.max(28,Math.min(108,Math.round((n.vel||80)*0.92))),dur:isRoll?0.5:Math.min(1.0,0.5)});
+        });
+      }
+    });
+    // 후반부 존재감 보장: 에너지 높은 구간은 마디 첫박에 팀파니 강타를 확보(단, 마디당 1회)
+    secsT.forEach((sc,si2)=>{
+      const e=eT(sc.startQ);if(e<4)return;
+      const bq=barQt(si2);
+      for(let b0=sc.startQ;b0<sc.endQ-1e-6;b0+=bq){
+        if(timp.some(n=>Math.abs(n.t-b0)<0.3||(n.roll&&n.t<=b0&&n.t+n.dur>b0)))continue;
+        const root=rootAt(b0);
+        timp.push({t:b0,midi:root,vel:e>=5?92:84,dur:Math.min(1.2,bq*0.5)});
+      }
+    });
+    if(timp.length){MODEL.tracks.timp=timp.sort((a,b)=>a.t-b.t);MODEL.timpCC=timpCC.sort((a,b)=>a.t-b.t);}
+    // (3) 원 드럼 트랙에서 팀파니(tom)는 MIDI 내보내기에서 제외 → 음정 트랙이 대신함(앱 재생은 유지)
+    MODEL.tracks.drums.forEach(n=>{if(/^tom/.test(n.type))n.noMidi=1;});
+  }
+  // ── 같은 음 겹침 트림(전 스타일 공통): 같은 음이 울리는 중에 다시 그 음이 나오면 앞 음을 직전에 끊는다.
+  //    (MIDI 노트오프 충돌 방지 — 겹치면 앞 음의 오프가 뒤 음까지 꺼버려 소리가 뚝 끊김)
+  ['bass','piano','piano2','guitar','melody','counter','lead','genre','drone'].forEach(trk=>{
+    const arr=MODEL.tracks[trk];if(!arr||!arr.length)return;
+    // ① 같은 시각·같은 음 중복 제거(센 것만 남김) — 폭발 보강 등에서 겹쳐 쌓인 경우
+    const seenTP=new Map();const keep=[];
+    arr.slice().sort((a,b)=>a.t-b.t).forEach(n=>{
+      if(n.midi==null){keep.push(n);return;}
+      const k=n.midi+'@'+Math.round(n.t*96);const prev=seenTP.get(k);
+      if(prev){if((n.vel||0)>(prev.vel||0)){prev.vel=n.vel;prev.dur=Math.max(prev.dur||0,n.dur||0);}return;}
+      seenTP.set(k,n);keep.push(n);});
+    if(keep.length!==arr.length)MODEL.tracks[trk]=keep;
+    const arr2=MODEL.tracks[trk];
+    // ② 같은 음이 울리는 중 재등장하면 앞 음을 직전에 끊음
+    const byPitch=new Map();
+    arr2.forEach(n=>{if(n.midi==null)return;const k=n.midi;if(!byPitch.has(k))byPitch.set(k,[]);byPitch.get(k).push(n);});
+    byPitch.forEach(list=>{list.sort((a,b)=>a.t-b.t);
+      for(let i=0;i<list.length-1;i++){const cur=list[i],nx=list[i+1];
+        if(cur.t+(cur.dur||0)>nx.t-0.02)cur.dur=Math.max(0.05,nx.t-cur.t-0.02);}});
+  });
+
   return MODEL;
 }
 function qToSec(q){const S=MODEL.sections;if(!S.length)return q*(60/MODEL.bpm);
@@ -3079,9 +3215,27 @@ function guitarOrBrassExpr(notes){                          // 오케=브라스(
   if(['epic','animeost'].includes(state.style))return exprEvents(notes);   // 브라스 히트·지속
   return guitarExpr(notes);
 }
-function bassExpr(notes){                                   // 오케 저현=CC11 스웰, 일반 베이스=없음(어택이 표현)
-  if(['epic','animeost'].includes(state.style))return exprEvents(notes);
-  return null;
+function bassExpr(notes){
+  // 베이스 익스프레션(CC11): 긴 음은 "둥~" 하고 울리도록 살짝 차올랐다 유지, 짧은 음은 어택만 살리고 평탄
+  // (샘플 라이브러리·신스 베이스 모두 CC11로 음량/필터가 열려 지속감이 살아남)
+  if(['epic','animeost','disney','animerock'].includes(state.style))return exprEvents(notes);
+  if(!notes||!notes.length)return null;
+  const P=PERF[state.style]||{};
+  const LONG={sustain:1,drone:1,root5:1,walk:1};                 // 지속형 베이스: 울림 표현이 중요한 모드
+  const isLong=!!LONG[P.bass];
+  const ev=[{t:0,ctrl:11,val:isLong?86:100}];
+  const seen=new Set();
+  notes.forEach(n=>{
+    if(!(n.dur>0)||n.ghost)return;
+    if(n.dur>=1.2){                                              // 긴 음: 어택 직후 살짝 부풀었다가 천천히 유지 → 울림
+      const k=Math.round(n.t*48);if(seen.has(k))return;seen.add(k);
+      ev.push({t:n.t,ctrl:11,val:isLong?84:94});
+      ev.push({t:n.t+Math.min(0.35,n.dur*0.25),ctrl:11,val:isLong?104:106});
+      ev.push({t:n.t+n.dur*0.75,ctrl:11,val:isLong?96:100});
+      ev.push({t:n.t+n.dur*0.98,ctrl:11,val:isLong?84:92});
+    }
+  });
+  return ev.length>1?ev.sort((a,b)=>a.t-b.t):null;
 }
 function droneExpr(notes){                                 // 드론: 긴 지속음에 페이드 인/아웃(CC11) — 앰비언트의 핵심
   if(!notes||!notes.length)return null;
@@ -3343,17 +3497,18 @@ function exportAll(){arrange();
     const isOrch=['epic','animeost','disney','animerock'].includes(state.style);
     const D=MODEL.tracks.drums||[];
     if(isOrch&&D.length){
-      const grp=(types)=>D.filter(n=>types.includes(n.type));
-      const timp=grp(['tom1','tom2','tom3']);
+      const grp=(types)=>D.filter(n=>types.includes(n.type)&&!n.noMidi);
       const cassa=grp(['kick']);
       const cym=grp(['crash','openhat']);
       const kit=grp(['snare','hat']);
-      if(timp.length)tr.push(noteTrack(timp,9,null,true,null,'[웅장한 홀 팀파니(롤·강타)] Timpani',trackFX('drums')));
+      // 팀파니: 코드에 맞춘 '음정 트랙'(ch12, GM 47). 롤은 롱노트 1개 + CC11 크레셴도로 기록
+      if(MODEL.tracks.timp&&MODEL.tracks.timp.length)
+        tr.push(noteTrack(MODEL.tracks.timp,12,47,false,(MODEL.timpCC||null),'[웅장한 홀 팀파니(음정·롤은 CC11 크레셴도)] Timpani',trackFX('drums')));
       if(cassa.length)tr.push(noteTrack(cassa,9,null,true,null,'[초저역 대북(임팩트)] Gran Cassa (Concert Bass Drum)',trackFX('drums')));
       if(cym.length)tr.push(noteTrack(cym,9,null,true,null,'[금속 광채·긴 여운] Cymbals / Tam-tam',trackFX('drums')));
       if(kit.length)tr.push(noteTrack(kit,9,null,true,null,'[하이브리드 킷(스네어·햇)] Drum Kit - Snare/Hat',trackFX('drums')));
     } else if(D.length){
-      tr.push(noteTrack(D,9,null,true,null,im('drums').n,trackFX('drums')));
+      tr.push(noteTrack(D.filter(n=>!n.noMidi),9,null,true,null,im('drums').n,trackFX('drums')));
     }
   }
   if(state.enabled.piano&&MODEL.tracks.piano2&&MODEL.tracks.piano2.length)tr.push(noteTrack(MODEL.tracks.piano2,8,0,false,ped64(),'[은은한 배경 오스티나토] 2nd Piano - Arp Theme (soft)',trackFX('piano')));   // 2nd 피아노(ch8) — 서스테인 페달(CC64) 동일 적용(코드마다 밟고 바뀌기 직전 뗌)
@@ -3777,6 +3932,12 @@ function logicGuide(){
     line('※ 곡 후반 테마 복귀부에 자동 생성됨. 아래 이벤트가 기존 트랙에 얹혀 있으니 해당 트랙에서 처리:');
     line('※ 오케 타악은 MIDI에서 4트랙 분리됨: Timpani / Gran Cassa / Cymbals·Tam-tam / Drum Kit(Snare·Hat)');
     line('   → 로직에서 각 트랙에 해당 악기 로드(팀파니·대북·서스펜디드 심벌·스네어) 후 아래 EQ 적용');
+    line('※ Timpani는 드럼맵이 아니라 "음정 트랙"(ch12·GM 47)으로 나감 — 코드 근음/5도에 맞춰 조율되어 있음');
+    line('   · 롤은 낱음을 찍지 않고 롱노트 1개 + CC11 크레셴도로 기록됨');
+    line('   · 로직 설정: 팀파니 음원을 롤(또는 서스테인) 아티큘레이션으로 두고 CC11(Expression)을 다이내믹에 연결');
+    line('     → 한 음이 여리게 시작해 커지다가 다음 강타로 터지는 크레셴도 롤이 그대로 재현됨');
+    line('     (샘플 라이브러리가 CC1 모듈레이션을 쓰면 CC11 → CC1로 리매핑하거나 트랜스포머로 변환)');
+    line('   · 단타는 마디당 최대 1~4회(구간 에너지에 따라)로 제한 — 인트로·벌스는 비우고 후반부에 등장');
     line('');
     line('· 피아노 스파클(비움 2마디, 피아노 홀로):');
     line('    Channel EQ → HPF 100Hz(band1) / 5kHz High Shelf(band7) +2dB(반짝임)');
@@ -3843,6 +4004,7 @@ function logicGuide(){
     line('    → 로직: 스탭 패치가 아니라 서스테인/마르카토 패치 + CC11로 밀어붙이는 크레셴도');
     line('    → 인트로는 금관 쉼(공간 확보), 벌스는 두 마디에 한 번, 코러스부터 매 마디');
     line('· 그란카사·팀파니: 인트로는 두 마디에 한 번(팀파니 쉼) → 벌스 마디 첫박 → 코러스부터 촘촘하게');
+  line('· 타악 벨로시티 밸런스: 심벌 ×0.74(최대 104) · 그란카사 ×0.90 · 스네어 ×0.88 — 과열 없이 어울리게');
     line('    → 구간 마지막 마디의 필(픽업)은 유지 — 밴드 진입 신호');
     line('');
   }
@@ -3860,6 +4022,13 @@ function logicGuide(){
   line('━━━━ 베이스 주법(장르별 반영됨) ━━━━');
   line('· 아티큘레이션: 발라드·워십·사극은 레가토(게이트 0.97, 음이 서로 붙음) / 펑크·모타운·팝펑크·코무로는 스타카토(0.34~0.55)');
   line('    → 로직: 게이트가 MIDI 음 길이에 이미 반영됨. 베이스 음원의 릴리즈만 맞추면 그대로 재현');
+  line('· 익스프레션(CC11): 긴 음은 어택 직후 살짝 부풀었다 유지 → "둥~" 하고 울림. MIDI에 이미 기록됨');
+  line('    → 로직: 베이스 음원이 CC11(Expression)을 볼륨/필터에 받도록 두면 그대로 재현. 신스 베이스는 CC11→필터 컷오프에 연결하면 더 살아남');
+  line('· 고스트 노트: 벨로시티 24~34, 길이 0.11박의 뮤트 저음(펑크·모타운·네오소울·시티팝)');
+  line('    → 로직: 벨로시티 40 이하를 뮤트/데드노트 아티큘레이션으로 매핑하면 진짜 그루브가 남');
+  line('· 터치(핑거링): 손가락 교대=미세한 강약 물결 / 피크=고르고 단단 / 슬랩=옥타브 팝만 강하게 — 벨로시티로 구현됨');
+  line('· 레가토 연결: 발라드·워십·사극은 다음 음과 살짝 겹치게 기록 → 샘플 라이브러리의 레가토/글라이드가 물림');
+  line('    (같은 음끼리는 절대 겹치지 않게 자동 정리 — 노트오프 충돌 방지)');
   line('· 어프로치: 2마디 프레이즈 끝 8분에 다음 코드 근음으로 반음 접근(가스펠·모타운·컨트리·네오소울)');
   line('· 앤티시페이션(푸시): 다음 코드 근음을 8분 먼저 당겨 침(K팝·시티팝·펑크·팝펑크·빌리)');
   line('    → 둘 다 음 개수를 늘리지 않고 기존 자리를 바꿔 넣음(밀도 유지, 느낌만 변화)');
